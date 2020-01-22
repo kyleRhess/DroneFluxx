@@ -2,7 +2,8 @@
 #include "System.h"
 
 /*
- * Exponent terms for rate control
+ * Exponent terms for rate control.
+ * Not used yet. Will be used in: aircraft_GetRxInput()
  */
 #define R_EX_3 0.0005f
 #define R_EX_2 0.0f
@@ -13,6 +14,8 @@
 #define MAX_CONT_THROT 80.0f
 #define MIN_IDLE_ALT 0.0f
 #define MAX_CONT_ALT 6.0f
+
+#define MOTOR_FILT_K 0.45045f
 
 float last_alt_Ahrs, last_roll_Ahrs, last_pitch_Ahrs, last_yaw_Ahrs = 0.0f;
 float delta_alt_Ahrs, delta_roll_Ahrs, delta_pitch_Ahrs, delta_yaw_Ahrs = 0.0f;
@@ -29,14 +32,17 @@ bool aircraft_AttControl = false;
 float channel_Max[4] = {-100000.0f, -100000.0f, -100000.0f, -100000.0f };
 float channel_Min[4] = { 100000.0f,  100000.0f,  100000.0f,  100000.0f };
 
+/*
+ * RC Receiver is updated by timer interrupt and the results are gathered here
+ */
 void aircraft_GetRxInput()
 {
 	// Map all microsecond inputs to % power or degrees
 	if(aircraft_AttControl && AIRCRAFT_STATE >= AIRCRAFT_STATE_ARMED)
 	{
-		roll_Input  	 = ATT_SCALE * mapVal((channelPulseWidth_us[CHANNEL_1_ROLL]),  	channel_Min[CHANNEL_1_ROLL], channel_Max[CHANNEL_1_ROLL], -20.0f, 20.0f); // (°/s)
-		pitch_Input 	 = ATT_SCALE * mapVal((channelPulseWidth_us[CHANNEL_2_PITCH]), 	channel_Min[CHANNEL_2_PITCH], channel_Max[CHANNEL_2_PITCH], -20.0f, 20.0f); // (°/s)
-		yaw_Input  		 = ATT_SCALE * mapVal((channelPulseWidth_us[CHANNEL_3_YAW]),   channel_Min[CHANNEL_3_YAW], channel_Max[CHANNEL_3_YAW], -90.0f,  90.0f); // (°/s)
+		roll_Input  	 = ATT_SCALE * mapVal((channelPulseWidth_us[CHANNEL_1_ROLL]),  	channel_Min[CHANNEL_1_ROLL], channel_Max[CHANNEL_1_ROLL], -20.0f, 20.0f); // (ï¿½/s)
+		pitch_Input 	 = ATT_SCALE * mapVal((channelPulseWidth_us[CHANNEL_2_PITCH]), 	channel_Min[CHANNEL_2_PITCH], channel_Max[CHANNEL_2_PITCH], -20.0f, 20.0f); // (ï¿½/s)
+		yaw_Input  		 = ATT_SCALE * mapVal((channelPulseWidth_us[CHANNEL_3_YAW]),   channel_Min[CHANNEL_3_YAW], channel_Max[CHANNEL_3_YAW], -90.0f,  90.0f); // (ï¿½/s)
 		throttle_Input   = mapVal((channelPulseWidth_us[CHANNEL_4_THOT]), 	channel_Min[CHANNEL_4_THOT], channel_Max[CHANNEL_4_THOT],  MIN_IDLE_ALT,  MAX_CONT_ALT); // (%) Limit top-end so controller can work
 
 		if(AIRCRAFT_STATE >= AIRCRAFT_STATE_IDLE)
@@ -49,9 +55,9 @@ void aircraft_GetRxInput()
 	}
 	else
 	{
-		roll_Input  	 = RATE_SCALE * mapVal((channelPulseWidth_us[CHANNEL_1_ROLL]),  	channel_Min[CHANNEL_1_ROLL], channel_Max[CHANNEL_1_ROLL], -20.0f, 20.0f); // (°/s)
-		pitch_Input 	 = RATE_SCALE * mapVal((channelPulseWidth_us[CHANNEL_2_PITCH]), 	channel_Min[CHANNEL_2_PITCH], channel_Max[CHANNEL_2_PITCH], -20.0f, 20.0f); // (°/s)
-		yaw_Input  		 = RATE_SCALE * mapVal((channelPulseWidth_us[CHANNEL_3_YAW]),   channel_Min[CHANNEL_3_YAW], channel_Max[CHANNEL_3_YAW], -90.0f,  90.0f); // (°/s)
+		roll_Input  	 = RATE_SCALE * mapVal((channelPulseWidth_us[CHANNEL_1_ROLL]),  	channel_Min[CHANNEL_1_ROLL], channel_Max[CHANNEL_1_ROLL], -20.0f, 20.0f); // (ï¿½/s)
+		pitch_Input 	 = RATE_SCALE * mapVal((channelPulseWidth_us[CHANNEL_2_PITCH]), 	channel_Min[CHANNEL_2_PITCH], channel_Max[CHANNEL_2_PITCH], -20.0f, 20.0f); // (ï¿½/s)
+		yaw_Input  		 = RATE_SCALE * mapVal((channelPulseWidth_us[CHANNEL_3_YAW]),   channel_Min[CHANNEL_3_YAW], channel_Max[CHANNEL_3_YAW], -90.0f,  90.0f); // (ï¿½/s)
 		throttle_Input   = mapVal((channelPulseWidth_us[CHANNEL_4_THOT]), 	channel_Min[CHANNEL_4_THOT], channel_Max[CHANNEL_4_THOT],  MIN_IDLE_THROT,  MAX_CONT_THROT); // (%) Limit top-end so controller can work
 
 		roll_Input = 0.0018f*(roll_Input*roll_Input*roll_Input) + 1.7708f*(roll_Input);			// 3rd order exponential
@@ -92,6 +98,9 @@ bool aircraft_CalibratingInput()
 	return stillChanging;
 }
 
+/*
+ * Return if RC receiver has been calibrated
+ */
 bool aircraft_IsCalibrated()
 {
 	bool rc = false;
@@ -109,10 +118,8 @@ bool aircraft_IsCalibrated()
 			}
 		}
 	}
-
 	return rc;
 }
-
 
 /*
  * Return flight status
@@ -127,7 +134,10 @@ bool aircraft_IsFlying()
 	return rc;
 }
 
-// Throttle stick to the bottom-left
+/*
+ * Throttle stick to the bottom-left:
+ * This triggers aircraft disarming.
+ */
 bool aircraft_Disarming()
 {
 	bool rc = false;
@@ -149,7 +159,10 @@ bool aircraft_Disarming()
 	return rc;
 }
 
-// Throttle stick to the bottom-right
+/*
+ * Throttle stick to the bottom-right:
+ * This triggers aircraft arming.
+ */
 bool aircraft_Arming()
 {
 	bool rc = false;
@@ -157,51 +170,41 @@ bool aircraft_Arming()
 	{
 		if((roll_Input < -19.0f*RATE_SCALE) && (pitch_Input > 19.0f*RATE_SCALE))
 		{
-			/*
-			 * FLAG FOR RATE CONTROL
-			 */
+			// FLAG FOR RATE CONTROL
 			rc = true;
 			aircraft_AttControl = false;
 
+			// Reset PID terms
+			proportionalGain[0] 		= 0.210000f;
+			proportionalGain[1] 		= 0.210000f;
+			proportionalGain[2] 		= 0.200000f;
+			proportionalGain[3] 		= 2.20f;
 
-			/*
-			 * Reset PID terms
-			 */
-			proportionalGain[0] 	= 0.210000f;
-			proportionalGain[1] 	= 0.210000f;
-			proportionalGain[2] 	= 0.200000f;
-			proportionalGain[3] 	= 2.20f;
+			integralGain[0] 			= 0.212125f;
+			integralGain[1] 			= 0.212125f;
+			integralGain[2] 			= 0.16125f;
+			integralGain[3] 			= 2.50f;
 
-			integralGain[0] 	= 0.212125f;
-			integralGain[1] 	= 0.212125f;
-			integralGain[2] 	= 0.16125f;
-			integralGain[3] 	= 2.50f;
+			derivativeGain[0] 			= 0.00010f;
+			derivativeGain[1] 			= 0.00010f;
+			derivativeGain[2] 			= 0.000010f;
+			derivativeGain[3] 			= 0.1750f;
 
-			derivativeGain[0] 	= 0.00010f;
-			derivativeGain[1] 	= 0.00010f;
-			derivativeGain[2] 	= 0.000010f;
-			derivativeGain[3] 	= 0.1750f;
+			proportionalGain[PID_ROLL] 	*= 0.80f;
+			integralGain[PID_ROLL] 		*= 0.80f;
+			derivativeGain[PID_ROLL] 	*= 0.80f;
 
-			proportionalGain[PID_ROLL] *= 0.80f;
-			integralGain[PID_ROLL] *= 0.80f;
-			derivativeGain[PID_ROLL] *= 0.80f;
-
-			flightControl[PID_XGYR].kP =  proportionalGain[PID_XGYR] * 0.75f;
-			flightControl[PID_YGYR].kP =  proportionalGain[PID_YGYR] * 0.75f;
-			flightControl[PID_ZGYR].kP =  proportionalGain[PID_ZGYR] * 0.85f;
+			flightControl[PID_XGYR].kP 	=  proportionalGain[PID_XGYR] * 0.75f;
+			flightControl[PID_YGYR].kP 	=  proportionalGain[PID_YGYR] * 0.75f;
+			flightControl[PID_ZGYR].kP 	=  proportionalGain[PID_ZGYR] * 0.85f;
 		}
 		else if((roll_Input > 19.0f*RATE_SCALE) && (pitch_Input > 19.0f*RATE_SCALE))
 		{
-			/*
-			 * FLAG FOR ATTITUDE CONTROL
-			 */
+			// FLAG FOR ATTITUDE CONTROL
 			rc = true;
 			aircraft_AttControl = true;
 
-
-			/*
-			 * Reset PID terms
-			 */
+			// Reset PID terms
 			proportionalGain[PID_PITCH] 	= 0.20000f;
 			proportionalGain[PID_ROLL] 		= 0.20000f;
 			proportionalGain[PID_YAW] 		= 0.20000f;
@@ -222,11 +225,13 @@ bool aircraft_Arming()
 	return rc;
 }
 
-static float newMotorVal[4] = {0.0f};
-
-// Update all motor values with PID outputs
+/*
+ * Update all motor values with PID signal outputs
+ */
 void aircraft_UpdateMotors()
 {
+	static float newMotorVal[4] = {0.0f};
+
 	if(1)//(!aircraft_AttControl)
 	{
 		motorPower[MOTOR_FRONT_LEFT]  = throttle_Input;
@@ -255,11 +260,14 @@ void aircraft_UpdateMotors()
 	motorPower[MOTOR_BACK_RIGHT] -= PID_GetOutput(&flightControl[PID_ROLL]);
 	motorPower[MOTOR_BACK_RIGHT] += PID_GetOutput(&flightControl[PID_YAW]);
 
-#define K_MOT 0.45045f
-#ifdef K_MOT
+#ifdef MOTOR_FILT_K
+	/*
+	 * Filter PID motor signals to prevent ESC confusion
+	 * Not ideal. May need to reduce/remove filtering
+	 */
 	for (int i = 0; i < 4; ++i)
 	{
-		newMotorVal[i] = (1.0f - K_MOT)*newMotorVal[i] + (K_MOT * motorPower[i]);
+		newMotorVal[i] = (1.0f - MOTOR_FILT_K)*newMotorVal[i] + (MOTOR_FILT_K * motorPower[i]);
 	}
 #endif
 
@@ -270,7 +278,9 @@ void aircraft_UpdateMotors()
 	PWM_adjust_PulseWidth(&PWMtimer.timer, MOTOR_ESC_1, mapVal(newMotorVal[MOTOR_BACK_RIGHT], 	0.0f, 100.0f, MIN_ESC_US, MAX_ESC_US));
 }
 
-// Control an LED
+/*
+ *  Control an LED
+ */
 void aircraft_WriteLED(int LED, int state)
 {
 	switch(LED)
@@ -292,11 +302,12 @@ void aircraft_WriteLED(int LED, int state)
 	}
 }
 
-
-// Control an LED
-static uint32_t lastFlashTicks[4] = {0,0,0,0};
+/*
+ *  Control an LED
+ */
 void aircraft_FlashLED(int LED, uint16_t Freq)
 {
+	static uint32_t lastFlashTicks[4] = {0,0,0,0};
 	if((TotalReadTicks - lastFlashTicks[LED]) > SAMPLE_RATE_HZ(Freq/2))
 	{
 		lastFlashTicks[LED] = TotalReadTicks;
@@ -320,7 +331,10 @@ void aircraft_FlashLED(int LED, uint16_t Freq)
 	}
 }
 
-
+/*
+ * Completely resets all parameters.
+ * Should only be called while not in flight.
+ */
 void aircraft_Reset()
 {
 	aircraft_WriteLED(LED_A, 0);
@@ -338,7 +352,7 @@ void aircraft_Reset()
 	xgyro_Ahrs = ygyro_Ahrs = zgyro_Ahrs = 0.0f;
 	roll_Input = pitch_Input = yaw_Input = 0.0f;
 	throttle_Input = 0.0f;
-	alpha_Yaw = 0.0f; //Initial yaw value
+	alpha_Yaw = 0.0f; // Initial yaw value
 
 	PWM_adjust_DutyCycle(&PWMtimer.timer, motorPower[MOTOR_FRONT_LEFT], 0.0f);
 	PWM_adjust_DutyCycle(&PWMtimer.timer, motorPower[MOTOR_FRONT_RIGHT], 0.0f);

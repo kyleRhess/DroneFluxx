@@ -19,8 +19,6 @@
 #define SERIAL_CMD_START 	0x7F
 #define SERIAL_CMD_END 		0xF7
 
-
-
 uint8_t *uartBuffer;
 uint8_t uartRx[RX_BUFF_SZ];
 uint8_t uartRxBuffer[1];
@@ -42,8 +40,6 @@ struct DataMsg {
 } __attribute__((__packed__));
 
 struct DataMsg datMsg;
-
-extern UART_HandleTypeDef s_UARTHandle;
 
 int InitSerial(uint32_t baudrate, uint32_t stopbits, uint32_t datasize, uint32_t parity);
 void RunSerial(void);

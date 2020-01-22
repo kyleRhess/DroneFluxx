@@ -3,6 +3,8 @@
 
 #include "System.h"
 
+//#define USING_MAG
+
 // Linear Acceleration: mg per LSB
 #define LSM9DS0_ACCEL_MG_LSB_2G 		(0.061F)
 #define LSM9DS0_ACCEL_MG_LSB_4G 		(0.122F)
@@ -11,19 +13,20 @@
 #define LSM9DS0_ACCEL_MG_LSB_16G 		(0.732F) // Is this right? Was expecting 0.488F
 
 // Magnetic Field Strength: gauss range
+#ifdef USING_MAG
 #define LSM9DS0_MAG_MGAUSS_2GAUSS      	(0.08F)
 #define LSM9DS0_MAG_MGAUSS_4GAUSS      	(0.16F)
 #define LSM9DS0_MAG_MGAUSS_8GAUSS      	(0.32F)
 #define LSM9DS0_MAG_MGAUSS_12GAUSS     	(0.48F)
+#endif
 
 // Angular Rate: dps per LSB
-#define LSM9DS0_GYRO_DPS_DIGIT_245DPS      (0.00875F)
-#define LSM9DS0_GYRO_DPS_DIGIT_500DPS      (0.01750F)
-#define LSM9DS0_GYRO_DPS_DIGIT_2000DPS     (0.07000F)
+#define LSM9DS0_GYRO_DPS_DIGIT_245DPS   (0.00875F)
+#define LSM9DS0_GYRO_DPS_DIGIT_500DPS   (0.01750F)
+#define LSM9DS0_GYRO_DPS_DIGIT_2000DPS  (0.07000F)
 
 // Temperature: LSB per degree celsius
-#define LSM9DS0_TEMP_LSB_DEGREE_CELSIUS    (8)  // 1°C = 8, 25° = 200, etc.
-
+#define LSM9DS0_TEMP_LSB_DEGREE_CELSIUS (8)  // 1°C = 8, 25° = 200, etc.
 
 #define IMU_START_RX	0
 #define IMU_BYTES_TX	15
@@ -37,8 +40,10 @@ int GpsReadSize;
 uint8_t txBuff[64];
 uint8_t Data_rxBuff[64];
 volatile int16_t imuData[10];
+#ifdef USING_MAG
 volatile int16_t magData[4];
 volatile long accumMagData[4];
+#endif
 extern volatile uint16_t ReadTicks;
 extern volatile uint32_t TotalReadTicks;
 extern volatile uint32_t msgReadTicks;
@@ -76,7 +81,6 @@ double		PAR_P8;
 double		PAR_P9;
 double		PAR_P10;
 double		PAR_P11;
-
 
 void getRawData(void);
 void procRawData(void);

@@ -5,7 +5,7 @@
 //DMA_HandleTypeDef hdma_usart1_rx;
 
 static bool errorSet = false;
-extern UART_HandleTypeDef s_UARTHandle = { .Instance = USART1 };
+UART_HandleTypeDef s_UARTHandle = { .Instance = USART1 };
 __IO ITStatus UartReady				= SET;
 __IO ITStatus UartRxCmdReady 		= RESET;
 
@@ -131,11 +131,6 @@ uint8_t getStatus(uint8_t msgCount)
 
 
 	return rc;
-}
-
-static int random(int min, int max)
-{
-   return min + rand() / (__RAND_MAX / (max - min + 1) + 1);
 }
 
 void transmitSerialData()
@@ -308,8 +303,8 @@ uint8_t calcCRC(uint8_t datArr[], size_t size)
 static int len = 0;
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
 {
-//	if(UartHandle->Instance == USART1)
-//	{
+	if(UartHandle->Instance == USART1)
+	{
 		if(UartRxCmdReady == RESET)
 		{
 			// copy ISR buffer into RX buffer
@@ -328,7 +323,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
 
 			HAL_UART_Receive_IT(&s_UARTHandle, uartRxBuffer, 1);
 		}
-//	}
+	}
 }
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle)

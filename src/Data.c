@@ -2,6 +2,8 @@
 #include "System.h"
 #include "minmea.h"
 
+#define		INIT_ALT	45.0
+
 static TIM_HandleTypeDef SamplingTimer = { .Instance = TIM9 };
 SPI_Bus SPI_Bus_2;
 SPI_Bus SPI_Bus_1;
@@ -20,10 +22,12 @@ int initData()
 		scaledData[i] = 0.0f;
 	}
 
+#ifdef USING_MAG
 	for (size_t i = 0; i < sizeof(accumMagData)/sizeof(accumMagData[0]); ++i)
 	{
 		accumMagData[i] = 0;
 	}
+#endif
 
 	memset(txBuff, 0, sizeof(txBuff));
 	memset(Data_rxBuff, 0, sizeof(Data_rxBuff));
@@ -33,19 +37,19 @@ int initData()
 	return HAL_OK;
 }
 
-/*
- * All this should do is read SPI data and store it.
- * Nothing else. Called from ISR at 5 kHz.
- */
 uint8_t recData[512];
-float maxZ, minZ;
 char line[MINMEA_MAX_LENGTH];
 int timeCount = 0;
 char* msgId, msgGPSData, NoMsg, msgNo, NoSv;
+/*
+ * All this should do is read SPI data and store it.
+ * Nothing else. Called from ISR at SAMPLE_RATE kHz.
+ */
 void getRawData()
 {
 	if(SYSTEM_STATE != SYS_STATE_RESET)
 	{
+		// Read gyro & accel data
 		readIMU();
 
 #if 0
@@ -145,21 +149,23 @@ void getRawData()
 		}
 #endif
 
-		if(TotalReadTicks % 5000 == 0)
+		if(TotalReadTicks % SAMPLE_RATE == 0)
 		{
-			//if(GPSrxBuff[0] != 0xff) memcpy(&recData, &GPSrxBuff, 512);
-//			readMAG();
-//			magData[0] = rxBuff[14+1] | (rxBuff[15+1] << 8);
-//			magData[1] = rxBuff[16+1] | (rxBuff[17+1] << 8);
-//			magData[2] = rxBuff[18+1] | (rxBuff[19+1] << 8);
-//			magData[3] = rxBuff[20+1] | (rxBuff[21+1] << 8);
-//
-//			xmag 	= (float)magData[0] 	* (MAG_SCALE 	/ 32768.0f);
-//			ymag 	= (float)magData[1] 	* (MAG_SCALE 	/ 32768.0f);
-//			zmag 	= (float)magData[2] 	* (MAG_SCALE 	/ 32768.0f);
+#if 0
+			if(GPSrxBuff[0] != 0xff) memcpy(&recData, &GPSrxBuff, 512);
+			readMAG();
+			magData[0] = rxBuff[14+1] | (rxBuff[15+1] << 8);
+			magData[1] = rxBuff[16+1] | (rxBuff[17+1] << 8);
+			magData[2] = rxBuff[18+1] | (rxBuff[19+1] << 8);
+			magData[3] = rxBuff[20+1] | (rxBuff[21+1] << 8);
+
+			xmag 	= (float)magData[0] 	* (MAG_SCALE 	/ 32768.0f);
+			ymag 	= (float)magData[1] 	* (MAG_SCALE 	/ 32768.0f);
+			zmag 	= (float)magData[2] 	* (MAG_SCALE 	/ 32768.0f);
+#endif
 		}
 
-		// Read baro at 5000/100 Hz
+		// Read baro at SAMPLE_RATE/100 Hz
 		if(TotalReadTicks % 100 == 0)
 		{
 			readBARO();
@@ -180,11 +186,10 @@ void getRawData()
 			baro_comp_temp(uncompTemp);
 			baro_comp_press(uncompPress);
 
-#define		A	45.0
 			if(seaLevelPress == -99.0 && calib_press > 10.0)
 			{
 				// Pressure at sea-level
-				seaLevelPress = (calib_press / (pow((-1.0*(((A-44330.0)/44330.0))), (1051.0/200.0)) * 100.0));
+				seaLevelPress = (calib_press / (pow((-1.0*(((INIT_ALT-44330.0)/44330.0))), (1051.0/200.0)) * 100.0));
 			}
 			altitude = 44330.0f * (1.0f - (float)pow(((calib_press / 100.0) / seaLevelPress), 0.190295));
 		}
@@ -226,18 +231,18 @@ void getRawData()
 			zgyro_Ahrs = zgyr;
 		}
 
-		if(zgyro_Ahrs < minZ) minZ = zgyro_Ahrs;
-		if(zgyro_Ahrs > maxZ) maxZ = zgyro_Ahrs;
-
+		// Increment main counters at SAMPLE_RATE
 		ReadTicks++;
 		TotalReadTicks++;
 		msgReadTicks++;
 
+#ifdef USING_MAG
 		// accumulate new data for averaging
 		for (size_t i = 0; i < sizeof(magData)/sizeof(magData[0]); ++i)
 		{
 			accumMagData[i] += magData[i];
 		}
+#endif
 
 		// Flag the controller to process the accumulated data
 		if(ReadTicks == (SAMPLE_RATE/CONTROL_RATE))
@@ -254,9 +259,6 @@ void getRawData()
 			MadgwickAHRSupdate(   xgyr * (PI / 180.0f), ygyr * (PI / 180.0f), zgyr * (PI / 180.0f), xacc, yacc, zacc, -xmag, -ymag, zmag);
 	#endif
 		}
-
-
-		//HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
 	}
 }
 
@@ -265,23 +267,26 @@ void getRawData()
  */
 void procRawData()
 {
+#ifdef USING_MAG
 	// Average the accum'd data
-//	for (size_t i = 0; i < sizeof(accumMagData)/sizeof(accumMagData[0]); ++i)
-//	{
-//		scaledData[i] = (float)((float)accumMagData[i] / (float)ReadTicks);
-//	}
-//
-//	// Scale gyros, accels, mags, tempC
-//	xmag 	= scaledData[MAG_X] 	* (MAG_SCALE 	/ 32768.0f);
-//	ymag 	= scaledData[MAG_Y] 	* (MAG_SCALE 	/ 32768.0f);
-//	zmag 	= scaledData[MAG_Z] 	* (MAG_SCALE 	/ 32768.0f);
-//	tempC 	= 21.0f + (float)scaledData[TEMPC] / 8.0f;
-//
-//	// Zero-out accumulator
-//	for (size_t i = 0; i < sizeof(accumData)/sizeof(accumData[0]); ++i)
-//	{
-//		accumData[i] = 0;
-//	}
+	for (size_t i = 0; i < sizeof(accumMagData)/sizeof(accumMagData[0]); ++i)
+	{
+		scaledData[i] = (float)((float)accumMagData[i] / (float)ReadTicks);
+	}
+
+	// Scale gyros, accels, mags, tempC
+	xmag 	= scaledData[MAG_X] 	* (MAG_SCALE 	/ 32768.0f);
+	ymag 	= scaledData[MAG_Y] 	* (MAG_SCALE 	/ 32768.0f);
+	zmag 	= scaledData[MAG_Z] 	* (MAG_SCALE 	/ 32768.0f);
+	tempC 	= 21.0f + (float)scaledData[TEMPC] / 8.0f;
+
+	// Zero-out accumulator
+	for (size_t i = 0; i < sizeof(accumData)/sizeof(accumData[0]); ++i)
+	{
+		accumData[i] = 0;
+	}
+#endif
+
 	ReadTicks = 0;
 
 	// Compute roll/pitch/yaw angles from quaternions
@@ -364,6 +369,9 @@ void readBARO()
 	SPI_SetCSHi(SPI2_CS_PORT, SPI2_CS2);
 }
 
+/*
+ * Compensate baro temperature
+ */
 double baro_comp_temp(uint32_t uncomp_temp)
 {
 	double partial_1;
@@ -377,6 +385,9 @@ double baro_comp_temp(uint32_t uncomp_temp)
 	return calib_temp;
 }
 
+/*
+ * Compensate baro pressure
+ */
 double baro_comp_press(uint32_t uncomp_press)
 {
 	double partial_1;
@@ -406,17 +417,11 @@ double baro_comp_press(uint32_t uncomp_press)
 	return calib_press;
 }
 
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
+//
+// Prepare the SPI buses
+//
 void InitSPIBus()
 {
-	//
-	// Prepare the SPI buses
-	//
 	SPI_Initialize(&SPI_Bus_2, SPI2, SPI_BAUDRATEPRESCALER_16, SPI_FIRSTBIT_MSB, SPI_POLARITY_HIGH);
 	SPI_Initialize_CS(SPI2_CS_PORT, SPI2_CS0);
 	SPI_Initialize_CS(SPI2_CS_PORT, SPI2_CS1);
@@ -425,29 +430,29 @@ void InitSPIBus()
 	SPI_Initialize(&SPI_Bus_1, SPI1, SPI_BAUDRATEPRESCALER_32, SPI_FIRSTBIT_MSB, SPI_POLARITY_HIGH);
 	SPI_Initialize_CS(SPI1_CS_PORT, SPI1_CS0);
 
-
 	HAL_NVIC_SetPriority(SPI1_IRQn, 2, 0);
 	HAL_NVIC_EnableIRQ(SPI1_IRQn);
 	HAL_NVIC_SetPriority(SPI2_IRQn, 3, 0);
 	HAL_NVIC_EnableIRQ(SPI2_IRQn);
 
-
 	initIMU();
 	HAL_Delay(5);
-//	initMAG();
-//	HAL_Delay(5);
+#ifdef USING_MAG
+	initMAG();
+	HAL_Delay(5);
+#endif
 	initBARO();
 	HAL_Delay(5);
 }
 
-
-static int con = 0;
+//
+// Initialize GPS module
+//
 int initGPS()
 {
+	static int con = 0;
 //	memset(GPStxBuff, 0xff, sizeof(GPStxBuff));
 
-
-	uint8_t ffbytes = 0;
 	newDat = false;
 	counter = 0;
 
@@ -455,7 +460,6 @@ int initGPS()
 	{
 		memset(GPSrxBuff, 0, sizeof(GPSrxBuff));
 	}
-
 
 	SPI_SetCSLow(SPI1_CS_PORT, SPI1_CS0);
 	SPI_TxRx(&SPI_Bus_1, 0xff, &GPSrxBuff[con++], 1);
@@ -615,6 +619,7 @@ void initMAG()
 	txBuff[1] = 0;
 	SPI_TxRx(&SPI_Bus_2, &txBuff[0], &Data_rxBuff[0], 2);
 	SPI_SetCSHi(SPI2_CS_PORT, SPI2_CS1);
+
 	while(Data_rxBuff[1] != 0x3d)
 	{
 		// Catch failure to read
@@ -638,37 +643,38 @@ void initMAG()
 	txBuff[1] = 0;
 	SPI_TxRx(&SPI_Bus_2, &txBuff[0], &Data_rxBuff[0], 2);
 	SPI_SetCSHi(SPI2_CS_PORT, SPI2_CS1);
-//
-//	SPI_SetCSLow(SPI2_CS_PORT, SPI2_CS1);
-//	txBuff[0] = MAG_CTRL_REG2;
-//	txBuff[1] = MAG_CTRL_REG2_V;
-//	SPI_Tx(&SPI_Bus_2, &txBuff[0], 2);
-//	SPI_SetCSHi(SPI2_CS_PORT, SPI2_CS1);
-//
-//	SPI_SetCSLow(SPI2_CS_PORT, SPI2_CS1);
-//	txBuff[0] = MAG_CTRL_REG3;
-//	txBuff[1] = MAG_CTRL_REG3_V;
-//	SPI_Tx(&SPI_Bus_2, &txBuff[0], 2);
-//	SPI_SetCSHi(SPI2_CS_PORT, SPI2_CS1);
-//
-//	SPI_SetCSLow(SPI2_CS_PORT, SPI2_CS1);
-//	txBuff[0] = MAG_CTRL_REG4;
-//	txBuff[1] = MAG_CTRL_REG4_V;
-//	SPI_Tx(&SPI_Bus_2, &txBuff[0], 2);
-//	SPI_SetCSHi(SPI2_CS_PORT, SPI2_CS1);
-//
-//	SPI_SetCSLow(SPI2_CS_PORT, SPI2_CS1);
-//	txBuff[0] = MAG_CTRL_REG5;
-//	txBuff[1] = MAG_CTRL_REG5_V;
-//	SPI_Tx(&SPI_Bus_2, &txBuff[0], 2);
-//	SPI_SetCSHi(SPI2_CS_PORT, SPI2_CS1);
+
+#if 0
+	SPI_SetCSLow(SPI2_CS_PORT, SPI2_CS1);
+	txBuff[0] = MAG_CTRL_REG2;
+	txBuff[1] = MAG_CTRL_REG2_V;
+	SPI_Tx(&SPI_Bus_2, &txBuff[0], 2);
+	SPI_SetCSHi(SPI2_CS_PORT, SPI2_CS1);
+
+	SPI_SetCSLow(SPI2_CS_PORT, SPI2_CS1);
+	txBuff[0] = MAG_CTRL_REG3;
+	txBuff[1] = MAG_CTRL_REG3_V;
+	SPI_Tx(&SPI_Bus_2, &txBuff[0], 2);
+	SPI_SetCSHi(SPI2_CS_PORT, SPI2_CS1);
+
+	SPI_SetCSLow(SPI2_CS_PORT, SPI2_CS1);
+	txBuff[0] = MAG_CTRL_REG4;
+	txBuff[1] = MAG_CTRL_REG4_V;
+	SPI_Tx(&SPI_Bus_2, &txBuff[0], 2);
+	SPI_SetCSHi(SPI2_CS_PORT, SPI2_CS1);
+
+	SPI_SetCSLow(SPI2_CS_PORT, SPI2_CS1);
+	txBuff[0] = MAG_CTRL_REG5;
+	txBuff[1] = MAG_CTRL_REG5_V;
+	SPI_Tx(&SPI_Bus_2, &txBuff[0], 2);
+	SPI_SetCSHi(SPI2_CS_PORT, SPI2_CS1);
+#endif
 
 	HAL_Delay(1);
 }
 
 void initBARO()
 {
-
 	SPI_SetCSLow(SPI2_CS_PORT, SPI2_CS2);
 	txBuff[0] = (BARO_IF_CONF | 0x80);
 	txBuff[1] = 0;

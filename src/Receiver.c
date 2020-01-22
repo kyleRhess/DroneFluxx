@@ -8,11 +8,11 @@ volatile uint16_t this_timer_value[4] = { 0, 0, 0, 0 };
 
 volatile uint8_t chReady[4] = {0,0,0,0};
 
+/*
+ * Timer used for input PWM signals
+ */
 int InitReceiverTimer()
 {
-	/*
-	 * Timer used for input PWM signals
-	 */
 	__HAL_RCC_GPIOA_CLK_ENABLE();
 	__HAL_RCC_TIM1_CLK_ENABLE();
 

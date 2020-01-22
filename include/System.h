@@ -8,7 +8,6 @@
 #include "PWM.h"
 #include "MadgwickAHRS.h"
 #include "Data.h"
-#include "matrix.h"
 #include "Aircraft.h"
 #include "Receiver.h"
 #include "Reset.h"
@@ -19,11 +18,8 @@
 
 //#define PID_RATE
 
-
 #define ATT_SCALE 1.0f
 #define RATE_SCALE 3.0f
-
-
 
 #define HIGH 			1
 #define LOW  			0
@@ -44,14 +40,13 @@ typedef int bool;
 #define MAX_ESC_US		25.0f
 //#define IMU_ONLY
 
+// SPI port mapping
 #define SPI1_CS_PORT	GPIOA
 #define SPI1_CS0		GPIO_PIN_15
-
 #define SPI2_CS_PORT	GPIOC
 #define SPI2_CS0		GPIO_PIN_0
 #define SPI2_CS1		GPIO_PIN_1
 #define SPI2_CS2		GPIO_PIN_4
-
 
 // IMU Defs
 #define IMU_WHO_AM_I	0x0f
@@ -144,7 +139,6 @@ typedef int bool;
 #define TEMPC    		9
 #define SEN_NUM 		10
 
-
 typedef enum
 {
 	MOTOR_FRONT_LEFT = 0,
@@ -199,9 +193,6 @@ extern double seaLevelPress;
 extern float lat, lon, heading, groundSpeed, numSVs;
 extern float channelPulseWidth_us[CHANNEL_NUM];
 extern PWM_Out PWMtimer;
-extern matrix3x3 LevelDCM;
-extern matrix3x3 rDCM;
-extern vector3 rVect;
 
 extern PID_Controller flightControl[PID_NUM];
 extern float motorPower[MOTOR_NUM];
@@ -223,7 +214,6 @@ void resetController();
 void InitializeSystem(void);
 int InitPWMOutput(void);
 int InitPID(void);
-
 
 extern float mapVal(float x, float in_min, float in_max, float out_min, float out_max);
 

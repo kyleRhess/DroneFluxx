@@ -3,10 +3,11 @@
 
 static int rstCounter = 0;
 
+/*
+ * Setup the RST pin
+ */
 int Reset_Init()
 {
-
-	// Setup the RST pin
 	GPIO_InitTypeDef gRstPin;
 	gRstPin.Pin = RST_PIN;
 	gRstPin.Mode = GPIO_MODE_INPUT;

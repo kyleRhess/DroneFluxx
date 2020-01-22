@@ -1,7 +1,5 @@
 #include "System.h"
 
-
-
 static int status = HAL_OK;
 
 /*
@@ -11,64 +9,65 @@ float channelPulseWidth_us[CHANNEL_NUM];
 PWM_Out PWMtimer;
 PID_Controller flightControl[PID_NUM];
 float motorPower[MOTOR_NUM];
-float zacc, xacc, yacc = 0.0f;
-float zgyr, xgyr, ygyr = 0.0f;
-float zgyrBias, xgyrBias, ygyrBias, altBias = 0.0f;
-float xmag, ymag, zmag, tempC = 0.0f;
-float altitude = 0.0f;
-double seaLevelPress = -99.0;
+float zacc, xacc, yacc 							= 0.0f;
+float zgyr, xgyr, ygyr 							= 0.0f;
+float zgyrBias, xgyrBias, ygyrBias, altBias 	= 0.0f;
+float xmag, ymag, zmag, tempC 					= 0.0f;
+float altitude 									= 0.0f;
+double seaLevelPress 							= -99.0;
 
-float lat, lon, heading, groundSpeed, numSVs = 0.0f;
+float lat, lon, heading, groundSpeed, numSVs 	= 0.0f;
 
 bool system_Aligned = false;
 
-matrix3x3 LevelDCM;
-matrix3x3 rDCM;
-vector3 rVect;
+float proportionalGain[PID_NUM] 				= {0.210000f, 0.210000f, 0.200000f, 2.20f};
+float integralGain[PID_NUM] 					= {0.212125f, 0.212125f, 0.16125f, 2.50f};
+float derivativeGain[PID_NUM] 					= {0.00010f, 0.00010f, 0.000010f, 0.175f};
 
-
-float proportionalGain[PID_NUM] 	= {0.210000f, 0.210000f, 0.200000f, 2.20f};
-float integralGain[PID_NUM] 		= {0.212125f, 0.212125f, 0.16125f, 2.50f};
-float derivativeGain[PID_NUM] 		= {0.00010f, 0.00010f, 0.000010f, 0.175f};
-
-
-volatile SYS_STATE SYSTEM_STATE = SYS_STATE_NONE;
+volatile SYS_STATE SYSTEM_STATE 	= SYS_STATE_NONE;
 volatile CRAFT_STATE AIRCRAFT_STATE = AIRCRAFT_STATE_NONE;
 
-
+/*
+ * Initialize all interrupts and other systems
+ */
 void InitializeSystem()
 {
 	// Less inertia on roll axis so reduce gains
-	proportionalGain[PID_ROLL] *= 0.80f;
-	integralGain[PID_ROLL] *= 0.80f;
-	derivativeGain[PID_ROLL] *= 0.80f;
+	proportionalGain[PID_ROLL] 	*= 0.80f;
+	integralGain[PID_ROLL] 		*= 0.80f;
+	derivativeGain[PID_ROLL] 	*= 0.80f;
 
 	status = HAL_Init();
 	status = initData();
-	status = InitSamplingTimer(); // Sensor sampling timer
-	status = InitReceiverTimer(); // Receiver input timer
-	status = InitPWMOutput();  	  // ESC output PWM
-	status = InitPID();			  // PID controller setup
+
+	// Sensor sampling timer
+	status = InitSamplingTimer();
+
+	// Receiver input timer
+	status = InitReceiverTimer();
+
+	// ESC output PWM
+	status = InitPWMOutput();
+
+	// PID controller setup
+	status = InitPID();
+
 	status = Reset_Init();
 	InitSPIBus();
-	status = InitSerial(115200, UART_STOPBITS_1, UART_WORDLENGTH_8B, UART_PARITY_NONE);		  // Serial comm. setup
+
+	// Serial comm. setup
+	status = InitSerial(115200, UART_STOPBITS_1, UART_WORDLENGTH_8B, UART_PARITY_NONE);
 
 	flightControl[PID_XGYR].kP =  proportionalGain[PID_XGYR] * 0.75f;
 	flightControl[PID_YGYR].kP =  proportionalGain[PID_YGYR] * 0.75f;
 	flightControl[PID_ZGYR].kP =  proportionalGain[PID_ZGYR] * 0.85f;
 
-	// Catch init failure
+	// Catch initialize failure
 	while(status){;}
 
-
-
-	/*
-	 * Start data acquisition sample timer interrupt
-	 */
+	// Start data acquisition sample timer interrupt
 	HAL_NVIC_SetPriority(TIM1_BRK_TIM9_IRQn,0,0);
 	HAL_NVIC_EnableIRQ(TIM1_BRK_TIM9_IRQn);
-
-
 
 	// Set motor PWM to 0%
 	for (size_t i = 0; i < sizeof(motorPower)/sizeof(motorPower[0]); ++i)
@@ -101,8 +100,8 @@ void RunSystem()
 // This gets called at CONTROL_RATE (Hz).
 void runController()
 {
-	//HAL_GPIO_WritePin(GPIOC, GPIO_PIN_14, GPIO_PIN_SET);
 	static float xgyrBiasTemp, ygyrBiasTemp, zgyrBiasTemp, altBiasTemp = 0.0f;
+	static float initialTime = 0.0f;
 	static int armingCount = 0;
 	static long gyroBiasCount = 0;
 
@@ -115,7 +114,7 @@ void runController()
 			// Check for a restart while in flight
 			if(aircraft_IsFlying() && (xgyro_Ahrs > 10.0f || ygyro_Ahrs > 10.0f || zgyro_Ahrs > 10.0f))
 			{
-				//Skip alignment
+				// Skip alignment
 				xgyrBiasTemp = 0;
 				ygyrBiasTemp = 0;
 				zgyrBiasTemp = 0;
@@ -125,52 +124,13 @@ void runController()
 				AIRCRAFT_STATE = AIRCRAFT_STATE_ARMED;
 			}
 
-			if(SYS_READ_TIME(TotalReadTicks) < 5.0f)
+			if(SYS_READ_TIME(TotalReadTicks) < 2.0f)
 			{
 				aircraft_FlashLED(LED_A, 2);
 			}
 			else
 			{
-				if((SYS_READ_TIME(TotalReadTicks) < 10.0f) && !system_Aligned)
-				{
-					aircraft_FlashLED(LED_A, 4);
-
-					//Get sensor biases to subtract for first X seconds of initialization
-					xgyrBiasTemp += xgyr;
-					ygyrBiasTemp += ygyr;
-					zgyrBiasTemp += zgyr;
-					altBiasTemp += altitude;
-
-					//Set filter to converge fast at start
-					beta = 5.5f;
-
-					gyroBiasCount++;
-				}
-				else if(!system_Aligned)
-				{
-					xgyrBiasTemp /= (float)gyroBiasCount;
-					ygyrBiasTemp /= (float)gyroBiasCount;
-					zgyrBiasTemp /= (float)gyroBiasCount;
-					altBiasTemp /= (float)gyroBiasCount;
-
-					xgyrBias = xgyrBiasTemp;
-					ygyrBias = ygyrBiasTemp;
-					zgyrBias = zgyrBiasTemp;
-					altBias = altBiasTemp;
-
-					alpha_Yaw = yaw_Madgwick;
-
-					//Set filter back to normal
-					beta = 0.16f;
-
-					PWM_adjust_PulseWidth(&PWMtimer.timer, MOTOR_ESC_1, mapVal(0.0f, 	0.0f, 100.0f, MIN_ESC_US, MAX_ESC_US));
-					PWM_adjust_PulseWidth(&PWMtimer.timer, MOTOR_ESC_2, mapVal(0.0f, 	0.0f, 100.0f, MIN_ESC_US, MAX_ESC_US));
-					PWM_adjust_PulseWidth(&PWMtimer.timer, MOTOR_ESC_3, mapVal(0.0f, 	0.0f, 100.0f, MIN_ESC_US, MAX_ESC_US));
-					PWM_adjust_PulseWidth(&PWMtimer.timer, MOTOR_ESC_4, mapVal(0.0f, 	0.0f, 100.0f, MIN_ESC_US, MAX_ESC_US));
-
-					system_Aligned = true;
-					AIRCRAFT_STATE = AIRCRAFT_STATE_INIT;
-				}
+				AIRCRAFT_STATE = AIRCRAFT_STATE_INIT;
 			}
 			break;
 		case AIRCRAFT_STATE_INIT:
@@ -178,7 +138,6 @@ void runController()
 			aircraft_FlashLED(LED_A, 8);
 
 			static int pwmPulse = 0;
-
 
 			pwmPulse++;
 			if(pwmPulse == 50)
@@ -214,12 +173,55 @@ void runController()
 					armingCount = 0;
 					aircraft_WriteLED(LED_A, 1);
 					AIRCRAFT_STATE = AIRCRAFT_STATE_TX_CAL;
+					initialTime = SYS_READ_TIME(TotalReadTicks);
 				}
 			}
 			break;
 		case AIRCRAFT_STATE_TX_CAL:
 			// Light LED_B
 			aircraft_FlashLED(LED_B, 4);
+
+			if(((SYS_READ_TIME(TotalReadTicks) - initialTime) < 2.0f) && !system_Aligned)
+			{
+				aircraft_FlashLED(LED_A, 4);
+
+				// Get sensor biases to subtract for first X seconds of initialization
+				xgyrBiasTemp += xgyr;
+				ygyrBiasTemp += ygyr;
+				zgyrBiasTemp += zgyr;
+				altBiasTemp += altitude;
+
+				// Set filter to converge fast at start
+				beta = 5.5f;
+
+				gyroBiasCount++;
+			}
+			else if(!system_Aligned)
+			{
+				aircraft_WriteLED(LED_A, 1);
+
+				xgyrBiasTemp /= (float)gyroBiasCount;
+				ygyrBiasTemp /= (float)gyroBiasCount;
+				zgyrBiasTemp /= (float)gyroBiasCount;
+				altBiasTemp /= (float)gyroBiasCount;
+
+				xgyrBias = xgyrBiasTemp;
+				ygyrBias = ygyrBiasTemp;
+				zgyrBias = zgyrBiasTemp;
+				altBias = altBiasTemp;
+
+				alpha_Yaw = yaw_Madgwick;
+
+				// Set filter back to normal
+				beta = 0.16f;
+
+				PWM_adjust_PulseWidth(&PWMtimer.timer, MOTOR_ESC_1, mapVal(0.0f, 	0.0f, 100.0f, MIN_ESC_US, MAX_ESC_US));
+				PWM_adjust_PulseWidth(&PWMtimer.timer, MOTOR_ESC_2, mapVal(0.0f, 	0.0f, 100.0f, MIN_ESC_US, MAX_ESC_US));
+				PWM_adjust_PulseWidth(&PWMtimer.timer, MOTOR_ESC_3, mapVal(0.0f, 	0.0f, 100.0f, MIN_ESC_US, MAX_ESC_US));
+				PWM_adjust_PulseWidth(&PWMtimer.timer, MOTOR_ESC_4, mapVal(0.0f, 	0.0f, 100.0f, MIN_ESC_US, MAX_ESC_US));
+
+				system_Aligned = true;
+			}
 
 			// Check for calibration complete signal
 			// Move sticks to extremes during this time.
@@ -331,7 +333,7 @@ void runController()
 			{
 				/*
 				 * Integrate yaw input.
-				 * Deal with angle wrap around near 360°/0°
+				 * Deal with angle wrap around near 360ï¿½/0ï¿½
 				 */
 				if(alpha_Yaw + (yaw_Input / 10.0f) < 0)
 				{
@@ -395,23 +397,6 @@ void runController()
 
 				if(aircraft_IsFlying() && equalCount < 100)
 				{
-//					if(throttle_Input > 40.0f)
-//					{
-//						float pScalar = mapVal(throttle_Input, 39.9f, 85.01f, 1.0f, 0.55f);
-//
-//						flightControl[PID_XGYR].kP =  proportionalGain[PID_XGYR] * pScalar;
-//						flightControl[PID_YGYR].kP =  proportionalGain[PID_YGYR] * pScalar;
-//						flightControl[PID_ZGYR].kP =  proportionalGain[PID_ZGYR] * pScalar;
-//
-//						aircraft_FlashLED(LED_D, 7);
-//					}
-//					else
-//					{
-//						flightControl[PID_XGYR].kP =  proportionalGain[PID_XGYR];
-//						flightControl[PID_YGYR].kP =  proportionalGain[PID_YGYR];
-//						flightControl[PID_ZGYR].kP =  proportionalGain[PID_ZGYR];
-//					}
-
 					PID_Update(&flightControl[PID_XGYR], xgyro_Ahrs);
 					PID_Update(&flightControl[PID_YGYR], ygyro_Ahrs);
 					PID_Update(&flightControl[PID_ZGYR], zgyro_Ahrs);
@@ -470,12 +455,13 @@ void runController()
 	{
 		SYSTEM_STATE = SYS_STATE_IDLE;
 	}
-	//HAL_GPIO_WritePin(GPIOC, GPIO_PIN_14, GPIO_PIN_RESET);
 }
 
+/*
+ * Zero-out motor signals and re-initialize PID controllers
+ */
 void resetController()
 {
-	// Zero controller
 	PID_Reset(&flightControl[PID_ALT]);
 	PID_Reset(&flightControl[PID_PITCH]);
 	PID_Reset(&flightControl[PID_ROLL]);
@@ -506,11 +492,11 @@ void resetController()
 	AIRCRAFT_STATE = AIRCRAFT_STATE_ALIGNING;
 }
 
+/*
+ * Setup PID loops for yaw/pitch/roll
+ */
 int InitPID()
 {
-	/*
-	 * Setup PID loops for yaw_Ahrs/pitch_Ahrs/roll
-	 */
 	flightControl[PID_PITCH].kP = proportionalGain[PID_PITCH];
 	flightControl[PID_PITCH].kI = integralGain[PID_PITCH];
 	flightControl[PID_PITCH].kD = derivativeGain[PID_PITCH];
@@ -542,11 +528,11 @@ int InitPID()
 	return HAL_OK;
 }
 
+/*
+ * Timer used for motor ESC control
+ */
 int InitPWMOutput()
 {
-	/*
-	 * Timer used for motor ESC control
-	 */
 	PWMtimer.numChannels = 4;
 	PWMtimer.frequency = PWM_FREQ;
 	PWMtimer.TIM = TIM5;
@@ -556,6 +542,10 @@ int InitPWMOutput()
 	return HAL_OK;
 }
 
+/*
+ * Maps input values 'x' from 'in_min' to 'out_min',
+ * and from 'in_max' to 'out_max.'
+ */
 float mapVal(float x, float in_min, float in_max, float out_min, float out_max)
 {
 	if(x > in_max) x = in_max;

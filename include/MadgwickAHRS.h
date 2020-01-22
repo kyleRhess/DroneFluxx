@@ -13,8 +13,6 @@
 #ifndef MadgwickAHRS_h
 #define MadgwickAHRS_h
 
-#include "matrix.h"
-
 //----------------------------------------------------------------------------------------------------
 // Variable declaration
 
@@ -25,7 +23,6 @@ extern volatile float pitch_Madgwick;
 extern volatile float yaw_Madgwick;
 extern volatile float DCM[3][3];
 volatile float phi, theta, psi;
-extern volatile matrix3x3 QuatDCM;
 
 //---------------------------------------------------------------------------------------------------
 // Function declarations
@@ -35,7 +32,6 @@ void MadgwickAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, flo
 void quat_to_euler();
 void toEulerianAngle();
 void quat2dcm();
-vector3 rotationMatrixToEulerAngles(matrix3x3);
 float constrainAngle(float);
 void MadgwickEulerupdate();
 

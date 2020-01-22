@@ -34,7 +34,6 @@ volatile float q0 = 1.0f, q1 = 0.0f, q2 = 0.0f, q3 = 0.0f;	// quaternion of sens
 volatile float phi = 0.0f, theta = 0.0f, psi = 0.0f;
 volatile float roll_Madgwick = 0, pitch_Madgwick = 0, yaw_Madgwick = 0;
 volatile float DCM[3][3] = {{0.0f,0.0f,0.0f},{0.0f,0.0f,0.0f},{0.0f,0.0f,0.0f}};
-volatile matrix3x3 QuatDCM;
 
 //---------------------------------------------------------------------------------------------------
 // Function declarations
@@ -271,66 +270,6 @@ void toEulerianAngle()
 		yaw_Madgwick = atan2f(t3, t4) * (180.0f/M_PI);
   }
 }
-
-
-//---------------------------------------------------------------------------------------------------
-// Quaternion to DCM update
-// See: https://searchcode.com/codesearch/view/55080465/
-
-void quat2dcm()
-{
-	float Q[5] = {0.0f, q0, q1, q2, q3}; // Just used to easily convert MATLAB
-
-	// First row
-	QuatDCM.e11 = SQR(Q[1]) + SQR(Q[2]) - SQR(Q[3]) - SQR(Q[4]);
-	QuatDCM.e12 = 2 * (Q[2] * Q[3] + Q[1] * Q[4]);
-	QuatDCM.e13 = 2 * (Q[2] * Q[4] - Q[1] * Q[3]);
-	// Second row
-	QuatDCM.e21 = 2 * (Q[2] * Q[3] - Q[1] * Q[4]);
-	QuatDCM.e22 = SQR(Q[1]) - SQR(Q[2]) + SQR(Q[3]) - SQR(Q[4]);
-	QuatDCM.e23 = 2 * (Q[3] * Q[4] + Q[1] * Q[2]);
-	// Third row
-	QuatDCM.e31 = 2 * (Q[2] * Q[4] + Q[1] * Q[3]);
-	QuatDCM.e32 = 2 * (Q[3] * Q[4] - Q[1] * Q[2]);
-	QuatDCM.e33 = SQR(Q[1]) - SQR(Q[2]) - SQR(Q[3]) + SQR(Q[4]);
-}
-
-
-
-// Calculates rotation matrix to euler angles
-// The result is the same as MATLAB except the order
-// of the euler angles ( x and z are swapped ).
-vector3 rotationMatrixToEulerAngles(matrix3x3 R)
-{
-	float sy = sqrt(R.e32 * R.e32 +  R.e33 * R.e33 );
-	vector3 rc;
-
-	//bool singular = sy < 1e-6; // If
-
-	float x, y, z;
-	if (1)//(!singular)
-	{
-		x = atan2f(R.e32 , R.e33);
-		y = atan2f(-R.e31, sy);
-		z = atan2f(R.e21, R.e11);
-	}
-	else
-	{
-//		x = atan2(-R.at<double>(1,2), R.at<double>(1,1));
-//		y = atan2(-R.at<double>(2,0), sy);
-//		z = 0;
-	}
-
-	rc.e1 = x;
-	rc.e2 = y;
-	rc.e3 = z;
-
-	return rc;
-}
-
-
-
-
 
 
 //====================================================================================================

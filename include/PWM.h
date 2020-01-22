@@ -4,7 +4,7 @@
 #include <string.h>
 #include <math.h>
 #include "stm32f4xx_hal.h"
-#include "stm32f4xx_hal_conf.h"
+#include "stm32f4xx_hal_conf_template.h"
 #include "stm32f4xx_hal_tim.h"
 #include "stm32f4xx_hal_tim_ex.h"
 
