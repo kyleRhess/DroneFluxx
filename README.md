@@ -1,7 +1,7 @@
 # DroneFluxx
 
 
-#### [`A custom quadcopter flight controller.`](https://kylerhess.github.io/flight_controller.html)
+#### A custom quadcopter flight controller.
 
 ## Firmware
 
@@ -12,7 +12,7 @@ However, the lightweight [`PID module`](https://github.com/kyleRhess/DroneFluxx/
 ## Hardware
 
 
-Flight controller hardware is still in work, [`but has been made public`]() for those who are interested.
+Flight controller hardware is still in work, [`but has been made public`](https://github.com/kyleRhess/DroneFluxx/tree/master/Hardware) for those who are interested.
 
 
 
