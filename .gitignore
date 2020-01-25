@@ -151,7 +151,10 @@ local.properties
 # End of https://www.gitignore.io/api/c,c++,eclipse
 /Debug/
 
+# Created by https://www.gitignore.io/api/kicad
+# Edit at https://www.gitignore.io/?templates=kicad
 
+### KiCad ###
 # For PCBs designed using KiCad: http://www.kicad-pcb.org/
 # Format documentation: http://kicad-pcb.org/help/file-formats/
 
@@ -159,8 +162,8 @@ local.properties
 *.000
 *.bak
 *.bck
-*.kicad_pcb-bak
 *.sch-bak
+*.kicad_pcb-bak
 *~
 _autosave-*
 *.tmp
@@ -178,3 +181,14 @@ fp-info-cache
 # Exported BOM files
 *.xml
 *.csv
+
+### KiCad Patch ###
+escue-backup/
+
+*.tsv
+bom/
+
+# Gerber export output
+out/
+
+# End of https://www.gitignore.io/api/kicad
