@@ -1,3 +1,2 @@
 (sym_lib_table
-  (lib (name Sensor_Motion_Mine)(type Legacy)(uri R:/Documents/kiCAD/Drone/STM32_IMU_Rev2/Sensor_Motion_Mine.lib)(options "")(descr ""))
 )
