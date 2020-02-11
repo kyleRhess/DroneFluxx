@@ -6,7 +6,6 @@
 #define RST_PIN				GPIO_PIN_1
 #define MILLIS				500
 
-
 int Reset_Init(void);
 int Reset_Check(void);
 

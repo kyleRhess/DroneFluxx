@@ -3,20 +3,12 @@
 static int status = HAL_OK;
 
 /*
- * Extern variables used throughout
+ * External variables used throughout.
  */
 float channelPulseWidth_us[CHANNEL_NUM];
 PWM_Out PWMtimer;
 PID_Controller flightControl[PID_NUM];
 float motorPower[MOTOR_NUM];
-float zacc, xacc, yacc 							= 0.0f;
-float zgyr, xgyr, ygyr 							= 0.0f;
-float zgyrBias, xgyrBias, ygyrBias, altBias 	= 0.0f;
-float xmag, ymag, zmag, tempC 					= 0.0f;
-float altitude 									= 0.0f;
-double seaLevelPress 							= -99.0;
-
-float lat, lon, heading, groundSpeed, numSVs 	= 0.0f;
 
 bool system_Aligned = false;
 
@@ -112,7 +104,10 @@ void runController()
 		case AIRCRAFT_STATE_ALIGNING:
 
 			// Check for a restart while in flight
-			if(aircraft_IsFlying() && (xgyro_Ahrs > 10.0f || ygyro_Ahrs > 10.0f || zgyro_Ahrs > 10.0f))
+			if(aircraft_IsFlying() &&
+				(fabsf(xgyro_Ahrs) > 10.0f ||
+				 fabsf(ygyro_Ahrs) > 10.0f ||
+				 fabsf(zgyro_Ahrs) > 10.0f))
 			{
 				// Skip alignment
 				xgyrBiasTemp = 0;
@@ -125,13 +120,9 @@ void runController()
 			}
 
 			if(SYS_READ_TIME(TotalReadTicks) < 2.0f)
-			{
 				aircraft_FlashLED(LED_A, 2);
-			}
 			else
-			{
 				AIRCRAFT_STATE = AIRCRAFT_STATE_INIT;
-			}
 			break;
 		case AIRCRAFT_STATE_INIT:
 			// Light LED_A
@@ -146,12 +137,10 @@ void runController()
 				PWM_adjust_PulseWidth(&PWMtimer.timer, MOTOR_ESC_2, 30.0f);
 				PWM_adjust_PulseWidth(&PWMtimer.timer, MOTOR_ESC_3, 30.0f);
 				PWM_adjust_PulseWidth(&PWMtimer.timer, MOTOR_ESC_4, 30.0f);
-
 				pwmPulse = 9999;
 			}
 			else if(pwmPulse == 10000)
 			{
-
 				PWM_adjust_PulseWidth(&PWMtimer.timer, MOTOR_ESC_1, mapVal(0.0f, 	0.0f, 100.0f, MIN_ESC_US, MAX_ESC_US));
 				PWM_adjust_PulseWidth(&PWMtimer.timer, MOTOR_ESC_2, mapVal(0.0f, 	0.0f, 100.0f, MIN_ESC_US, MAX_ESC_US));
 				PWM_adjust_PulseWidth(&PWMtimer.timer, MOTOR_ESC_3, mapVal(0.0f, 	0.0f, 100.0f, MIN_ESC_US, MAX_ESC_US));
@@ -159,15 +148,10 @@ void runController()
 				pwmPulse = 0;
 			}
 
-
-			//PWM_adjust_PulseWidth(&PWMtimer.timer, MOTOR_ESC_1, mapVal(0.0f, 	0.0f, 100.0f, MIN_ESC_US, MAX_ESC_US));
-
-
 			// Wait for RC Tx to turn on
 			if(channelPulseWidth_us[CHANNEL_1_ROLL] > 0.0f)
 			{
 				armingCount++;
-
 				if(armingCount >= 10)
 				{
 					armingCount = 0;
@@ -320,7 +304,6 @@ void runController()
 				if(armingCount >= 200)
 				{
 					armingCount = 0;
-					aircraft_AttControl = false;
 					AIRCRAFT_STATE = AIRCRAFT_STATE_DISARMED;
 				}
 			}
@@ -329,88 +312,43 @@ void runController()
 				armingCount = 0;
 			}
 
-			if(aircraft_AttControl)
+			/*
+			 * Rate control
+			 */
+
+			// Apply input set-points
+			PID_SetSetpoint(&flightControl[PID_XGYR], pitch_Input);
+			PID_SetSetpoint(&flightControl[PID_YGYR], roll_Input);
+			PID_SetSetpoint(&flightControl[PID_ZGYR], yaw_Input);
+
+			// Check for loss of signal Tx
+			static float lastPulseWidth[CHANNEL_NUM] = {0.0f, 0.0f, 0.0f, 0.0f};
+			static int equalCount = 0;
+			for (int channel = 0; channel < CHANNEL_NUM; ++channel)
 			{
-				/*
-				 * Integrate yaw input.
-				 * Deal with angle wrap around near 360�/0�
-				 */
-				if(alpha_Yaw + (yaw_Input / 10.0f) < 0)
-				{
-					alpha_Yaw += (360.0f + (yaw_Input / 10.0f));
-				}
-				else if (alpha_Yaw + (yaw_Input / 10.0f) > 360.0f)
-				{
-					alpha_Yaw += (-360.0f + (yaw_Input / 10.0f));
-				}
+				if(lastPulseWidth[channel] == channelPulseWidth_us[channel])
+					equalCount++;
 				else
-				{
-					alpha_Yaw += ((yaw_Input / 10.0f));
-				}
+					equalCount = 0;
 
-				// Apply input set-points
-				PID_SetSetpoint(&flightControl[PID_ALT], throttle_Input);
-				PID_SetSetpoint(&flightControl[PID_XGYR], pitch_Input);
-				PID_SetSetpoint(&flightControl[PID_YGYR], roll_Input);
-				PID_SetSetpoint(&flightControl[PID_ZGYR], yaw_Input);
+				lastPulseWidth[channel] = channelPulseWidth_us[channel];
+			}
 
-				if(aircraft_IsFlying())
-				{
-					PID_Update(&flightControl[PID_XGYR], pitch_Ahrs);
-					PID_Update(&flightControl[PID_YGYR], roll_Ahrs);
-					PID_Update(&flightControl[PID_ZGYR], zgyro_Ahrs);
-					PID_Update(&flightControl[PID_ALT], (altitude-altBias));
-				}
-				else
-				{
-					PID_Reset(&flightControl[PID_ROLL]);
-					PID_Reset(&flightControl[PID_PITCH]);
-					PID_Reset(&flightControl[PID_YAW]);
-					PID_Reset(&flightControl[PID_ALT]);
-					throttle_Input = 0.0f; // reset
-					aircraft_UpdateMotors();
-				}
+			if(aircraft_IsFlying() && equalCount < 100)
+			{
+				PID_Update(&flightControl[PID_XGYR], xgyro_Ahrs);
+				PID_Update(&flightControl[PID_YGYR], ygyro_Ahrs);
+				PID_Update(&flightControl[PID_ZGYR], zgyro_Ahrs);
+				PID_Reset(&flightControl[PID_ALT]);
 			}
 			else
 			{
-				/*
-				 * Rate control
-				 */
-
-				// Apply input set-points
-				PID_SetSetpoint(&flightControl[PID_XGYR], pitch_Input);
-				PID_SetSetpoint(&flightControl[PID_YGYR], roll_Input);
-				PID_SetSetpoint(&flightControl[PID_ZGYR], yaw_Input);
-
-				// Check for loss of signal Tx
-				static float lastPulseWidth[CHANNEL_NUM] = {0.0f, 0.0f, 0.0f, 0.0f};
-				static int equalCount = 0;
-				for (int channel = 0; channel < CHANNEL_NUM; ++channel)
-				{
-					if(lastPulseWidth[channel] == channelPulseWidth_us[channel])
-						equalCount++;
-					else
-						equalCount = 0;
-
-					lastPulseWidth[channel] = channelPulseWidth_us[channel];
-				}
-
-				if(aircraft_IsFlying() && equalCount < 100)
-				{
-					PID_Update(&flightControl[PID_XGYR], xgyro_Ahrs);
-					PID_Update(&flightControl[PID_YGYR], ygyro_Ahrs);
-					PID_Update(&flightControl[PID_ZGYR], zgyro_Ahrs);
-					PID_Reset(&flightControl[PID_ALT]);
-				}
-				else
-				{
-					PID_Reset(&flightControl[PID_PITCH]);
-					PID_Reset(&flightControl[PID_ROLL]);
-					PID_Reset(&flightControl[PID_YAW]);
-					PID_Reset(&flightControl[PID_ALT]);
-					throttle_Input = 0.0f; // reset since it will be idling at %20 otherwise
-					aircraft_UpdateMotors();
-				}
+				PID_Reset(&flightControl[PID_PITCH]);
+				PID_Reset(&flightControl[PID_ROLL]);
+				PID_Reset(&flightControl[PID_YAW]);
+				PID_Reset(&flightControl[PID_ALT]);
+				throttle_Input = 0.0f; // reset since it will be idling at %20 otherwise
+				aircraft_UpdateMotors();
 			}
 
 			// Apply new PID outputs to ESCs
@@ -478,7 +416,6 @@ void resetController()
 	zgyr = xgyr = ygyr = 0.0f;
 	zgyrBias = xgyrBias = ygyrBias = 0.0f;
 	xgyro_Ahrs = ygyro_Ahrs = zgyro_Ahrs = 0.0f;
-	zmag = xmag = ymag = tempC = 0.0f;
 
 	system_Aligned = false;
 
@@ -529,6 +466,18 @@ int InitPID()
 }
 
 /*
+ * Maps input values 'x' from 'in_min' to 'out_min',
+ * and from 'in_max' to 'out_max.'
+ */
+float mapVal(float x, float in_min, float in_max, float out_min, float out_max)
+{
+	if(x > in_max) x = in_max;
+	if(x < in_min) x = in_min;
+
+	return ((x - in_min) * ((out_max - out_min) / (in_max - in_min))) + out_min;
+}
+
+/*
  * Timer used for motor ESC control
  */
 int InitPWMOutput()
@@ -540,18 +489,6 @@ int InitPWMOutput()
 	PWMtimer.timer = Initialize_PWM(&PWMtimer);
 
 	return HAL_OK;
-}
-
-/*
- * Maps input values 'x' from 'in_min' to 'out_min',
- * and from 'in_max' to 'out_max.'
- */
-float mapVal(float x, float in_min, float in_max, float out_min, float out_max)
-{
-	if(x > in_max) x = in_max;
-	if(x < in_min) x = in_min;
-
-	return ((x - in_min) * ((out_max - out_min) / (in_max - in_min))) + out_min;
 }
 
 void SysTick_Handler(void)

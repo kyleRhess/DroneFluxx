@@ -1,6 +1,20 @@
 #include "SPI.h"
 
 
+void SPI_Send(SPI_Bus * _SPI, GPIO_TypeDef *GPIOx, uint32_t Pin, uint8_t *pTxData, uint16_t bytesToTx)
+{
+	SPI_SetCSLow(GPIOx, Pin);
+	SPI_Tx(_SPI, pTxData, bytesToTx);
+	SPI_SetCSHi(GPIOx, Pin);
+}
+
+void SPI_SendReceive(SPI_Bus * _SPI, GPIO_TypeDef *GPIOx, uint32_t Pin, uint8_t *pTxData, uint8_t *pRxData, uint16_t bytesToTx)
+{
+	SPI_SetCSLow(GPIOx, Pin);
+	SPI_TxRx(_SPI, pTxData, pRxData, bytesToTx);
+	SPI_SetCSHi(GPIOx, Pin);
+}
+
 void SPI_Initialize(SPI_Bus * _SPI, SPI_TypeDef * SPI_BUS, uint32_t BaudRatePrescaler, uint32_t FirstBit, uint32_t CLKPolarity)
 {
 	// Prepare the SPI bus
@@ -32,35 +46,7 @@ void SPI_Initialize(SPI_Bus * _SPI, SPI_TypeDef * SPI_BUS, uint32_t BaudRatePres
 	_SPI->SPIBus.Init.NSS = SPI_NSS_SOFT;
 	_SPI->SPIBus.Init.TIMode = SPI_TIMODE_DISABLED;
 
-	if( HAL_SPI_Init(&_SPI->SPIBus) == HAL_OK)
-	{
-//		GPIO_InitTypeDef SPI_Pins;
-//		SPI_Pins.Mode = GPIO_MODE_AF_PP;
-//		SPI_Pins.Pull = GPIO_PULLUP;
-//		SPI_Pins.Speed = GPIO_SPEED_HIGH;
-//
-//		if(SPI_BUS == SPI1)
-//		{
-//			__GPIOB_CLK_ENABLE();
-//			SPI_Pins.Pin = GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5;
-//			SPI_Pins.Alternate = GPIO_AF5_SPI1;
-//			HAL_GPIO_Init((GPIO_TypeDef *)GPIOB, &SPI_Pins);
-//		}
-//		else if(SPI_BUS == SPI2)
-//		{
-//			__GPIOC_CLK_ENABLE();
-//			SPI_Pins.Pin = GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_7;
-//			SPI_Pins.Alternate = GPIO_AF5_SPI2;
-//			HAL_GPIO_Init((GPIO_TypeDef *)GPIOC, &SPI_Pins);
-//		}
-//		else
-//		{
-////			__GPIOB_CLK_ENABLE();
-////			SPI_Pins.Pin = GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5;
-////			SPI_Pins.Alternate = GPIO_AF5_SPI1;
-////			HAL_GPIO_Init((GPIO_TypeDef *)GPIOB, &SPI_Pins);
-//		}
-	}
+	if( HAL_SPI_Init(&_SPI->SPIBus) == HAL_OK){/**/}
 }
 
 void SPI_Initialize_CS(GPIO_TypeDef * CSPort, uint32_t pin)

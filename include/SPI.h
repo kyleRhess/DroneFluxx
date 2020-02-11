@@ -15,5 +15,7 @@ void SPI_TxRx(SPI_Bus * _SPI, uint8_t *pTxData, uint8_t *pRxData, uint16_t bytes
 void SPI_Tx(SPI_Bus * _SPI, uint8_t *pTxData, uint8_t bytesToTx);
 void SPI_SetCSHi(GPIO_TypeDef * CSPort, uint32_t Pin);
 void SPI_SetCSLow(GPIO_TypeDef * CSPort, uint32_t Pin);
+void SPI_Send(SPI_Bus * _SPI, GPIO_TypeDef *GPIOx, uint32_t Pin, uint8_t *pTxData, uint16_t bytesToTx);
+void SPI_SendReceive(SPI_Bus * _SPI, GPIO_TypeDef *GPIOx, uint32_t Pin, uint8_t *pTxData, uint8_t *pRxData, uint16_t bytesToTx);
 
 #endif /* SPI_H_ */

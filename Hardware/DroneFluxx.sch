@@ -1,4 +1,5 @@
 EESchema Schematic File Version 4
+LIBS:DroneFluxx-cache
 EELAYER 26 0
 EELAYER END
 $Descr A4 11693 8268
@@ -1145,231 +1146,12 @@ Text GLabel 7500 3250 0    50   Input ~ 0
 SPI2_CS2
 Wire Wire Line
 	7500 3250 7550 3250
-$Comp
-L Sensor_Motion_Mine:CAM-M8C-0 U5
-U 1 1 5C615C3B
-P 4000 4400
-F 0 "U5" H 4500 3350 50  0000 C CNN
-F 1 "CAM-M8C-0" H 4000 5124 50  0000 C CNN
-F 2 "MyLibs:31-SMD Module" H 3950 4400 50  0001 C CNN
-F 3 "" H 3950 4400 50  0001 C CNN
-	1    4000 4400
-	1    0    0    -1  
-$EndComp
-$Comp
-L power:GND #PWR017
-U 1 1 5C661BAC
-P 3000 4100
-F 0 "#PWR017" H 3000 3850 50  0001 C CNN
-F 1 "GND" H 3005 3927 50  0000 C CNN
-F 2 "" H 3000 4100 50  0001 C CNN
-F 3 "" H 3000 4100 50  0001 C CNN
-	1    3000 4100
-	1    0    0    -1  
-$EndComp
-$Comp
-L power:GND #PWR028
-U 1 1 5C662737
-P 4950 4000
-F 0 "#PWR028" H 4950 3750 50  0001 C CNN
-F 1 "GND" H 5000 4050 50  0000 C CNN
-F 2 "" H 4950 4000 50  0001 C CNN
-F 3 "" H 4950 4000 50  0001 C CNN
-	1    4950 4000
-	1    0    0    -1  
-$EndComp
-$Comp
-L power:GND #PWR029
-U 1 1 5C662DA2
-P 4950 4700
-F 0 "#PWR029" H 4950 4450 50  0001 C CNN
-F 1 "GND" H 5050 4700 50  0000 C CNN
-F 2 "" H 4950 4700 50  0001 C CNN
-F 3 "" H 4950 4700 50  0001 C CNN
-	1    4950 4700
-	1    0    0    -1  
-$EndComp
-$Comp
-L power:GND #PWR024
-U 1 1 5C662DED
-P 4200 5650
-F 0 "#PWR024" H 4200 5400 50  0001 C CNN
-F 1 "GND" H 4205 5477 50  0000 C CNN
-F 2 "" H 4200 5650 50  0001 C CNN
-F 3 "" H 4200 5650 50  0001 C CNN
-	1    4200 5650
-	1    0    0    -1  
-$EndComp
-$Comp
-L power:GND #PWR023
-U 1 1 5C662FF8
-P 3800 5650
-F 0 "#PWR023" H 3800 5400 50  0001 C CNN
-F 1 "GND" H 3805 5477 50  0000 C CNN
-F 2 "" H 3800 5650 50  0001 C CNN
-F 3 "" H 3800 5650 50  0001 C CNN
-	1    3800 5650
-	1    0    0    -1  
-$EndComp
-Wire Wire Line
-	3300 3850 3100 3850
-Wire Wire Line
-	3100 3850 3100 3950
-Wire Wire Line
-	3100 4650 3300 4650
-Wire Wire Line
-	3300 4550 3100 4550
-Connection ~ 3100 4550
-Wire Wire Line
-	3100 4550 3100 4650
-Wire Wire Line
-	3300 3950 3100 3950
-Connection ~ 3100 3950
-Wire Wire Line
-	3100 3950 3100 4100
-Wire Wire Line
-	3300 4250 3100 4250
-Connection ~ 3100 4250
-Wire Wire Line
-	3100 4250 3100 4350
-Wire Wire Line
-	3300 4350 3100 4350
-Connection ~ 3100 4350
-Wire Wire Line
-	3100 4350 3100 4450
-Wire Wire Line
-	3000 4100 3100 4100
-Connection ~ 3100 4100
-Wire Wire Line
-	3100 4100 3100 4250
-Wire Wire Line
-	4700 3850 4850 3850
-Wire Wire Line
-	4850 3850 4850 3950
-Wire Wire Line
-	4850 4150 4700 4150
-Wire Wire Line
-	4700 4050 4850 4050
-Connection ~ 4850 4050
-Wire Wire Line
-	4850 4050 4850 4150
-Wire Wire Line
-	4700 3950 4850 3950
-Connection ~ 4850 3950
-Wire Wire Line
-	4850 3950 4850 4000
-Wire Wire Line
-	4950 4000 4850 4000
-Connection ~ 4850 4000
-Wire Wire Line
-	4850 4000 4850 4050
-Wire Wire Line
-	4700 4650 4850 4650
-Wire Wire Line
-	4950 4650 4950 4700
-Wire Wire Line
-	4700 4750 4850 4750
-Wire Wire Line
-	4850 4750 4850 4650
-Connection ~ 4850 4650
-Wire Wire Line
-	4850 4650 4950 4650
-Wire Wire Line
-	4200 5550 4200 5650
-Wire Wire Line
-	3800 5550 3800 5650
-Wire Wire Line
-	3300 4450 3100 4450
-Connection ~ 3100 4450
-Wire Wire Line
-	3100 4450 3100 4550
-Wire Wire Line
-	3300 4050 3300 4150
-Text GLabel 3250 4750 0    50   Input ~ 0
-GPS_RESET
-Wire Wire Line
-	3300 4750 3250 4750
-Text GLabel 4750 4850 2    50   Input ~ 0
-SPI1_CS0
-Wire Wire Line
-	4750 4850 4700 4850
-$Comp
-L power:+3V3 #PWR027
-U 1 1 5C732B67
-P 4800 5050
-F 0 "#PWR027" H 4800 4900 50  0001 C CNN
-F 1 "+3V3" V 4850 5200 50  0000 C CNN
-F 2 "" H 4800 5050 50  0001 C CNN
-F 3 "" H 4800 5050 50  0001 C CNN
-	1    4800 5050
-	0    1    1    0   
-$EndComp
-Wire Wire Line
-	4800 5050 4700 5050
-$Comp
-L power:+3V3 #PWR026
-U 1 1 5C73E937
-P 4800 4250
-F 0 "#PWR026" H 4800 4100 50  0001 C CNN
-F 1 "+3V3" V 4850 4200 50  0000 C CNN
-F 2 "" H 4800 4250 50  0001 C CNN
-F 3 "" H 4800 4250 50  0001 C CNN
-	1    4800 4250
-	0    1    1    0   
-$EndComp
-Wire Wire Line
-	4800 4250 4700 4250
-Text GLabel 4750 4550 2    50   Input ~ 0
-SPI1_CLK
-Wire Wire Line
-	4750 4550 4700 4550
-Text GLabel 3250 4950 0    50   Input ~ 0
-SPI1_MISO
-Text GLabel 3250 5050 0    50   Input ~ 0
-SPI1_MOSI
-Text GLabel 4000 5600 3    50   Input ~ 0
-GPS_TP
-Wire Wire Line
-	4000 5550 4000 5600
-Wire Wire Line
-	3250 4950 3300 4950
-Wire Wire Line
-	3250 5050 3300 5050
 Text Notes 2750 6150 0    50   ~ 0
 Magnetometer
 Text Notes 550  6000 0    50   ~ 0
 Barometer
 Text Notes 550  3550 0    50   ~ 0
 Gyroscope/Accel
-Wire Notes Line
-	2750 3550 2750 5950
-Wire Notes Line
-	2750 5950 5200 5950
-Wire Notes Line
-	5200 5950 5200 3550
-Wire Notes Line
-	5200 3550 2750 3550
-Text Notes 2750 3550 0    50   ~ 0
-GPS
-$Comp
-L Device:C C14
-U 1 1 5C7BDE88
-P 4950 4350
-F 0 "C14" V 4850 4400 50  0000 L CNN
-F 1 "4.7uF" V 5000 4400 50  0000 L CNN
-F 2 "Capacitor_SMD:C_0805_2012Metric" H 4988 4200 50  0001 C CNN
-F 3 "~" H 4950 4350 50  0001 C CNN
-	1    4950 4350
-	0    1    1    0   
-$EndComp
-Wire Wire Line
-	4800 4350 4800 4250
-Connection ~ 4800 4250
-Wire Wire Line
-	5100 4350 5100 4000
-Wire Wire Line
-	5100 4000 4950 4000
-Connection ~ 4950 4000
 Text GLabel 9000 3450 2    50   Input ~ 0
 USART1_TX
 Text GLabel 9000 3550 2    50   Input ~ 0
@@ -1662,99 +1444,99 @@ Wire Wire Line
 $Comp
 L Connector:Conn_01x01_Female J19
 U 1 1 5C66EB61
-P 5950 3650
-F 0 "J19" H 5977 3676 50  0000 L CNN
-F 1 "Conn_01x01_Female" H 5977 3585 50  0000 L CNN
-F 2 "TestPoint:TestPoint_Pad_3.0x3.0mm" H 5950 3650 50  0001 C CNN
-F 3 "~" H 5950 3650 50  0001 C CNN
-	1    5950 3650
+P 5150 2750
+F 0 "J19" H 5177 2776 50  0000 L CNN
+F 1 "Conn_01x01_Female" H 5177 2685 50  0000 L CNN
+F 2 "TestPoint:TestPoint_Pad_3.0x3.0mm" H 5150 2750 50  0001 C CNN
+F 3 "~" H 5150 2750 50  0001 C CNN
+	1    5150 2750
 	1    0    0    -1  
 $EndComp
 $Comp
 L Connector:Conn_01x01_Female J20
 U 1 1 5C66EB67
-P 5950 3800
-F 0 "J20" H 5977 3826 50  0000 L CNN
-F 1 "Conn_01x01_Female" H 5977 3735 50  0000 L CNN
-F 2 "TestPoint:TestPoint_Pad_3.0x3.0mm" H 5950 3800 50  0001 C CNN
-F 3 "~" H 5950 3800 50  0001 C CNN
-	1    5950 3800
+P 5150 2900
+F 0 "J20" H 5177 2926 50  0000 L CNN
+F 1 "Conn_01x01_Female" H 5177 2835 50  0000 L CNN
+F 2 "TestPoint:TestPoint_Pad_3.0x3.0mm" H 5150 2900 50  0001 C CNN
+F 3 "~" H 5150 2900 50  0001 C CNN
+	1    5150 2900
 	1    0    0    -1  
 $EndComp
 $Comp
 L Connector:Conn_01x01_Female J22
 U 1 1 5C66EB6D
-P 5950 4100
-F 0 "J22" H 5977 4126 50  0000 L CNN
-F 1 "Conn_01x01_Female" H 5977 4035 50  0000 L CNN
-F 2 "TestPoint:TestPoint_Pad_3.0x3.0mm" H 5950 4100 50  0001 C CNN
-F 3 "~" H 5950 4100 50  0001 C CNN
-	1    5950 4100
+P 5150 3200
+F 0 "J22" H 5177 3226 50  0000 L CNN
+F 1 "Conn_01x01_Female" H 5177 3135 50  0000 L CNN
+F 2 "TestPoint:TestPoint_Pad_3.0x3.0mm" H 5150 3200 50  0001 C CNN
+F 3 "~" H 5150 3200 50  0001 C CNN
+	1    5150 3200
 	1    0    0    -1  
 $EndComp
 $Comp
 L power:GND #PWR0101
 U 1 1 5C66EB73
-P 5700 3650
-F 0 "#PWR0101" H 5700 3400 50  0001 C CNN
-F 1 "GND" V 5705 3477 50  0000 C CNN
-F 2 "" H 5700 3650 50  0001 C CNN
-F 3 "" H 5700 3650 50  0001 C CNN
-	1    5700 3650
+P 4900 2750
+F 0 "#PWR0101" H 4900 2500 50  0001 C CNN
+F 1 "GND" V 4905 2577 50  0000 C CNN
+F 2 "" H 4900 2750 50  0001 C CNN
+F 3 "" H 4900 2750 50  0001 C CNN
+	1    4900 2750
 	0    1    1    0   
 $EndComp
 $Comp
 L power:GND #PWR0102
 U 1 1 5C66EB79
-P 5700 3800
-F 0 "#PWR0102" H 5700 3550 50  0001 C CNN
-F 1 "GND" V 5705 3627 50  0000 C CNN
-F 2 "" H 5700 3800 50  0001 C CNN
-F 3 "" H 5700 3800 50  0001 C CNN
-	1    5700 3800
+P 4900 2900
+F 0 "#PWR0102" H 4900 2650 50  0001 C CNN
+F 1 "GND" V 4905 2727 50  0000 C CNN
+F 2 "" H 4900 2900 50  0001 C CNN
+F 3 "" H 4900 2900 50  0001 C CNN
+	1    4900 2900
 	0    1    1    0   
 $EndComp
 $Comp
 L power:GND #PWR0103
 U 1 1 5C66EB7F
-P 5700 4100
-F 0 "#PWR0103" H 5700 3850 50  0001 C CNN
-F 1 "GND" V 5705 3927 50  0000 C CNN
-F 2 "" H 5700 4100 50  0001 C CNN
-F 3 "" H 5700 4100 50  0001 C CNN
-	1    5700 4100
+P 4900 3200
+F 0 "#PWR0103" H 4900 2950 50  0001 C CNN
+F 1 "GND" V 4905 3027 50  0000 C CNN
+F 2 "" H 4900 3200 50  0001 C CNN
+F 3 "" H 4900 3200 50  0001 C CNN
+	1    4900 3200
 	0    1    1    0   
 $EndComp
 Wire Wire Line
-	5700 3650 5750 3650
+	4900 2750 4950 2750
 Wire Wire Line
-	5700 3800 5750 3800
+	4900 2900 4950 2900
 Wire Wire Line
-	5700 4100 5750 4100
+	4900 3200 4950 3200
 $Comp
 L Connector:Conn_01x01_Female J21
 U 1 1 5C66EB88
-P 5950 3950
-F 0 "J21" H 5977 3976 50  0000 L CNN
-F 1 "Conn_01x01_Female" H 5977 3885 50  0000 L CNN
-F 2 "TestPoint:TestPoint_Pad_3.0x3.0mm" H 5950 3950 50  0001 C CNN
-F 3 "~" H 5950 3950 50  0001 C CNN
-	1    5950 3950
+P 5150 3050
+F 0 "J21" H 5177 3076 50  0000 L CNN
+F 1 "Conn_01x01_Female" H 5177 2985 50  0000 L CNN
+F 2 "TestPoint:TestPoint_Pad_3.0x3.0mm" H 5150 3050 50  0001 C CNN
+F 3 "~" H 5150 3050 50  0001 C CNN
+	1    5150 3050
 	1    0    0    -1  
 $EndComp
 $Comp
 L power:GND #PWR0104
 U 1 1 5C66EB8E
-P 5700 3950
-F 0 "#PWR0104" H 5700 3700 50  0001 C CNN
-F 1 "GND" V 5705 3777 50  0000 C CNN
-F 2 "" H 5700 3950 50  0001 C CNN
-F 3 "" H 5700 3950 50  0001 C CNN
-	1    5700 3950
+P 4900 3050
+F 0 "#PWR0104" H 4900 2800 50  0001 C CNN
+F 1 "GND" V 4905 2877 50  0000 C CNN
+F 2 "" H 4900 3050 50  0001 C CNN
+F 3 "" H 4900 3050 50  0001 C CNN
+	1    4900 3050
 	0    1    1    0   
 $EndComp
 Wire Wire Line
-	5700 3950 5750 3950
+	4900 3050 4950 3050
 $Comp
 L Switch:SW_Push SW1
 U 1 1 5C6B6BD0
@@ -1814,4 +1596,48 @@ Wire Wire Line
 Wire Wire Line
 	9150 5650 9200 5650
 Connection ~ 9200 5650
+$Comp
+L dk_Interface-Controllers:FT232RQ-REEL U?
+U 1 1 5E33CC5E
+P 5300 4000
+F 0 "U?" H 5100 4300 60  0000 C CNN
+F 1 "FT232RQ-REEL" H 5100 4194 60  0000 C CNN
+F 2 "digikey-footprints:QFN-32-1EP_5x5mm" H 5500 4200 60  0001 L CNN
+F 3 "https://www.ftdichip.com/Support/Documents/DataSheets/ICs/DS_FT232R.pdf" H 5500 4300 60  0001 L CNN
+F 4 "768-1008-1-ND" H 5500 4400 60  0001 L CNN "Digi-Key_PN"
+F 5 "FT232RQ-REEL" H 5500 4500 60  0001 L CNN "MPN"
+F 6 "Integrated Circuits (ICs)" H 5500 4600 60  0001 L CNN "Category"
+F 7 "Interface - Controllers" H 5500 4700 60  0001 L CNN "Family"
+F 8 "https://www.ftdichip.com/Support/Documents/DataSheets/ICs/DS_FT232R.pdf" H 5500 4800 60  0001 L CNN "DK_Datasheet_Link"
+F 9 "/product-detail/en/ftdi-future-technology-devices-international-ltd/FT232RQ-REEL/768-1008-1-ND/1836403" H 5500 4900 60  0001 L CNN "DK_Detail_Page"
+F 10 "IC USB FS SERIAL UART 32-QFN" H 5500 5000 60  0001 L CNN "Description"
+F 11 "FTDI, Future Technology Devices International Ltd" H 5500 5100 60  0001 L CNN "Manufacturer"
+F 12 "Active" H 5500 5200 60  0001 L CNN "Status"
+	1    5300 4000
+	1    0    0    -1  
+$EndComp
+$Comp
+L Connector:USB_B_Micro J?
+U 1 1 5E33CEF7
+P 3000 4450
+F 0 "J?" H 3055 4917 50  0000 C CNN
+F 1 "USB_B_Micro" H 3055 4826 50  0000 C CNN
+F 2 "" H 3150 4400 50  0001 C CNN
+F 3 "~" H 3150 4400 50  0001 C CNN
+	1    3000 4450
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:Ferrite_Bead_Small FB?
+U 1 1 5E33D25D
+P 3500 4250
+F 0 "FB?" V 3700 4200 50  0000 L CNN
+F 1 "MI0805K400R-10" V 3600 3600 50  0000 L CNN
+F 2 "" V 3430 4250 50  0001 C CNN
+F 3 "https://www.digikey.com/product-detail/en/laird-signal-integrity-products/MI0805K400R-10/240-2389-1-ND/806749" H 3500 4250 50  0001 C CNN
+	1    3500 4250
+	0    -1   -1   0   
+$EndComp
+Wire Wire Line
+	3400 4250 3300 4250
 $EndSCHEMATC

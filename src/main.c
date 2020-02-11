@@ -47,11 +47,7 @@ _  __/   / /_/ /_    | _  __/   _  /____/ /  / /_/ / _  __  / _  /
 #include "stm32f4xx_hal_tim.h"
 #include "System.h"
 
-
-
-
 #define SQR(xxx) 			((xxx) * (xxx))
-
 
 // ----------------------------------------------------------------------------
 //
@@ -76,7 +72,6 @@ _  __/   / /_/ /_    | _  __/   _  /____/ /  / /_/ / _  __  / _  /
 static void setHighSystemClk(void);
 
 int main(int argc, char* argv[])
-
 {
 	setHighSystemClk();
 	InitializeSystem();
@@ -84,21 +79,8 @@ int main(int argc, char* argv[])
 	RCC->AHB1ENR = RCC_AHB1ENR_GPIOCEN;
 	RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
 
-
 	__HAL_RCC_GPIOB_CLK_ENABLE();
 
-
-//	GPIO_InitTypeDef gDataPin;
-//	gDataPin.Pin = GPIO_PIN_14 | GPIO_PIN_13;
-//	gDataPin.Mode = GPIO_MODE_AF_PP;
-//	gDataPin.Pull = GPIO_PULLDOWN;
-//	gDataPin.Speed = GPIO_SPEED_HIGH;
-//	HAL_GPIO_Init(GPIOC, &gDataPin);
-//	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_14, GPIO_PIN_RESET);
-//	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
-
-//	GPIO_MODE_AF_PP
-//
 	GPIO_InitTypeDef gDataPin;
 	gDataPin.Pin = GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15;
 	gDataPin.Mode = GPIO_MODE_OUTPUT_PP;
@@ -109,8 +91,6 @@ int main(int argc, char* argv[])
 	SYSTEM_STATE = SYS_STATE_IDLE;
 	AIRCRAFT_STATE = AIRCRAFT_STATE_ALIGNING;
 
-
-
 	while (1)
 	{
 		RunSystem();
@@ -118,9 +98,6 @@ int main(int argc, char* argv[])
 	}
 	return 0;
 }
-
-
-
 
 /*
  * Need to re-initialize clocks to use HSI for PLL and

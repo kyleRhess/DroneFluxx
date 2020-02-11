@@ -1,8 +1,5 @@
-
 #include "System.h"
 #include "Serial.h"
-
-//DMA_HandleTypeDef hdma_usart1_rx;
 
 static bool errorSet = false;
 UART_HandleTypeDef s_UARTHandle = { .Instance = USART1 };
@@ -23,7 +20,6 @@ int InitSerial(uint32_t baudrate, uint32_t stopbits, uint32_t datasize, uint32_t
 	rc = HAL_UART_Init(&s_UARTHandle);
 
 	HAL_UART_Receive_IT(&s_UARTHandle, uartRxBuffer, 1);
-
 
 	datMsg.msgCnt = 0;
 	serialODR 	= 50;
@@ -58,18 +54,15 @@ void RunSerial()
 			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_15, GPIO_PIN_RESET);
 			memset(uartRx, 0, sizeof(uartRx));
 		}
-
 		msgReadTicks = 0;
 	}
 	receiveSerial();
 }
 
-
 void receiveSerial()
 {
     HAL_UART_Receive_IT(&s_UARTHandle, uartRxBuffer, 1);
 }
-
 
 uint8_t getStatus(uint8_t msgCount)
 {
@@ -82,34 +75,6 @@ uint8_t getStatus(uint8_t msgCount)
 	{
 		rc = handshakeCMD;
 	}
-#if 0
-	else if(msgCount < 17)
-	{ //1->16
-		floatIndex = (msgCount - 1)/4;
-		shift = (8*(msgCount - (floatIndex*4)) - 8);
-
-		memcpy(&gainVal, &proportionalGain[floatIndex], 4);
-		rc = (uint8_t)((gainVal >> shift) & 0x000000ff);
-	}
-	else if(msgCount < 33)
-	{
-		msgCount -= 16;
-		floatIndex = (msgCount - 1)/4;
-		shift = (8*(msgCount - (floatIndex*4)) - 8);
-
-		memcpy(&gainVal, &integralGain[floatIndex], 4);
-		rc = (uint8_t)((gainVal >> shift) & 0x000000ff);
-	}
-	else if(msgCount < 49)
-	{ //33->48
-		msgCount -= 32;
-		floatIndex = (msgCount - 1)/4;
-		shift = (8*(msgCount - (floatIndex*4)) - 8);
-
-		memcpy(&gainVal, &derivativeGain[floatIndex], 4);
-		rc = (uint8_t)((gainVal >> shift) & 0x000000ff);
-	}
-#endif
 	else if(msgCount < 49) // PID Gains
 	{
 		if(msgCount < 17) 		msgCount -= 0;	//1	->16
@@ -125,11 +90,6 @@ uint8_t getStatus(uint8_t msgCount)
 
 		rc = (uint8_t)((gainVal >> shift) & 0x000000ff);
 	}
-
-
-
-
-
 	return rc;
 }
 
@@ -141,17 +101,13 @@ void transmitSerialData()
 		{
 			float arrt[7] =
 			{
-				motorPower[MOTOR_FRONT_LEFT],
-				motorPower[MOTOR_FRONT_RIGHT],
-				//motorPower[MOTOR_BACK_LEFT],
-//				motorPower[MOTOR_BACK_RIGHT],
-//				throttle_Input,//pitch_Ahrs,
-//				pitch_Input,//roll_Ahrs,
-				lat,
-				lon,
-				heading,
-				groundSpeed,
-				numSVs
+				xgyro_Ahrs, // Test data
+				0.0f,
+				0.0f,
+				0.0f,
+				0.0f,
+				0.0f,
+				0.0f
 			};
 
 			static uint32_t chksum32 = 0;
@@ -197,13 +153,10 @@ void transmitSerialData()
 	}
 }
 
-
-
 static uint32_t cksum = 0;
 uint8_t procCmd()
 {
 	uint8_t rc = 0;
-
 	if(uartRx[0] == SERIAL_CMD_START)
 	{
 		uint8_t payloadLen = uartRx[2];
@@ -228,9 +181,6 @@ uint8_t procCmd()
 				}
 
 				rc = cmd;
-
-//				HAL_UART_Transmit_IT(&s_UARTHandle, uartRx, 6);
-
 				switch (cmd)
 				{
 					case CMD_SET_OUT_DAT:
@@ -280,9 +230,11 @@ void decodePIDGains(uint8_t *payload)
 
 float toFloat(uint8_t bytes[], int startI)
 {
-	uint32_t rcUint = (uint32_t)((bytes[3+startI] << 24) | (bytes[2+startI] << 16) | (bytes[1+startI] << 8) | (bytes[0+startI] << 0));
+	uint32_t rcUint = (uint32_t)((bytes[3+startI] << 24) |
+								 (bytes[2+startI] << 16) |
+								 (bytes[1+startI] << 8) |
+								 (bytes[0+startI] << 0));
 	float rcFloat = *((float*)&rcUint);
-//	uint32_t transport_bits = *((uint32_t*)&source_float);
 	return rcFloat;
 }
 
@@ -299,7 +251,6 @@ uint8_t calcCRC(uint8_t datArr[], size_t size)
 /*
  * UART Interrupts
  */
-
 static int len = 0;
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
 {
@@ -350,13 +301,11 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *UartHandle)
 	}
 }
 
-
 void USART1_IRQHandler(void)
 {
 //	 HAL_DMA_IRQHandler(&hdma_usart1_rx);
 	  HAL_UART_IRQHandler(&s_UARTHandle);
 }
-
 
 void HAL_UART_MspInit(UART_HandleTypeDef* huart)
 {

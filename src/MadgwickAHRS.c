@@ -230,16 +230,6 @@ float invSqrt(float x) {
 
 //---------------------------------------------------------------------------------------------------
 // Quaternion to Euler angle update
-
-void quat_to_euler()
-{
-	roll_Madgwick = atan2f(q0*q1 + q2*q3, 0.5f - q1*q1 - q2*q2) * (180.0f/M_PI);
-	pitch_Madgwick = asinf(-2.0f * (q1*q3 - q0*q2)) * (180.0f/M_PI);
-	yaw_Madgwick = atan2f(q1*q2 + q0*q3, 0.5f - q2*q2 - q3*q3) * (180.0f/M_PI);
-}
-
-//---------------------------------------------------------------------------------------------------
-// Quaternion to Euler angle update
 // See: https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles#Source_Code_2
 
 void toEulerianAngle()
