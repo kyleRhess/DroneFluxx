@@ -22,8 +22,6 @@ extern volatile uint16_t ReadTicks;
 extern volatile uint32_t TotalReadTicks;
 extern volatile uint32_t msgReadTicks;
 
-
-
 void getRawData(void);
 void procRawData(void);
 int InitSamplingTimer(void);

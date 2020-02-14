@@ -17,19 +17,18 @@
 
 #define MOTOR_FILT_K 0.45045f
 
-float last_alt_Ahrs, last_roll_Ahrs, last_pitch_Ahrs, last_yaw_Ahrs = 0.0f;
-float delta_alt_Ahrs, delta_roll_Ahrs, delta_pitch_Ahrs, delta_yaw_Ahrs = 0.0f;
-
 float xgyro_Ahrs, ygyro_Ahrs, zgyro_Ahrs = 0.0f;
 float xaccl_Ahrs, yaccl_Ahrs, zaccl_Ahrs = 0.0f;
 float alt_Ahrs, roll_Ahrs, pitch_Ahrs, yaw_Ahrs = 0.0f;
 float roll_Input, pitch_Input, yaw_Input = 0.0f;
-float throttle_Input = 0.0f;
+float throt_Input = 0.0f;
 float alpha_Yaw = 0.0f; //Initial yaw value
 float throttleBias, yawBias, pitchBias, rollBias = 0.0f;
 
 float channel_Max[4] = {-100000.0f, -100000.0f, -100000.0f, -100000.0f };
 float channel_Min[4] = { 100000.0f,  100000.0f,  100000.0f,  100000.0f };
+
+uint8_t flashFreq[4] = {0, 0, 0, 0};
 
 /*
  * RC Receiver is updated by timer interrupt and the results are gathered here
@@ -37,17 +36,29 @@ float channel_Min[4] = { 100000.0f,  100000.0f,  100000.0f,  100000.0f };
 void aircraft_GetRxInput()
 {
 	// Map all microsecond inputs to % power or degrees
-	roll_Input  	 = RATE_SCALE * mapVal((channelPulseWidth_us[CHANNEL_1_ROLL]),  	channel_Min[CHANNEL_1_ROLL], channel_Max[CHANNEL_1_ROLL], -20.0f, 20.0f); // (�/s)
-	pitch_Input 	 = RATE_SCALE * mapVal((channelPulseWidth_us[CHANNEL_2_PITCH]), 	channel_Min[CHANNEL_2_PITCH], channel_Max[CHANNEL_2_PITCH], -20.0f, 20.0f); // (�/s)
-	yaw_Input  		 = RATE_SCALE * mapVal((channelPulseWidth_us[CHANNEL_3_YAW]),   channel_Min[CHANNEL_3_YAW], channel_Max[CHANNEL_3_YAW], -90.0f,  90.0f); // (�/s)
-	throttle_Input   = mapVal((channelPulseWidth_us[CHANNEL_4_THOT]), 	channel_Min[CHANNEL_4_THOT], channel_Max[CHANNEL_4_THOT],  MIN_IDLE_THROT,  MAX_CONT_THROT); // (%) Limit top-end so controller can work
+	roll_Input  = RATE_SCALE * mapVal(	channelPulseWidth_us[CHANNEL_1_ROLL],
+										channel_Min[CHANNEL_1_ROLL],
+										channel_Max[CHANNEL_1_ROLL], -20.0f, 20.0f);
 
-	roll_Input = 0.0018f*(roll_Input*roll_Input*roll_Input) + 1.7708f*(roll_Input);			// 3rd order exponential
+	pitch_Input = RATE_SCALE * mapVal(	channelPulseWidth_us[CHANNEL_2_PITCH],
+										channel_Min[CHANNEL_2_PITCH],
+										channel_Max[CHANNEL_2_PITCH], -20.0f, 20.0f);
+
+	yaw_Input  	= RATE_SCALE * mapVal(	channelPulseWidth_us[CHANNEL_3_YAW],
+										channel_Min[CHANNEL_3_YAW],
+										channel_Max[CHANNEL_3_YAW], -90.0f,  90.0f);
+
+	throt_Input = 			   mapVal(	channelPulseWidth_us[CHANNEL_4_THOT],
+										channel_Min[CHANNEL_4_THOT],
+										channel_Max[CHANNEL_4_THOT],
+										MIN_IDLE_THROT,  MAX_CONT_THROT); // (%) Limit top-end so controller can work
+
+	roll_Input 	= 0.0018f*(roll_Input*roll_Input*roll_Input) 	+ 1.7708f*(roll_Input);		// 3rd order exponential
 	pitch_Input = 0.0018f*(pitch_Input*pitch_Input*pitch_Input) + 1.7708f*(pitch_Input);	// 3rd order exponential
 
 	if(AIRCRAFT_STATE >= AIRCRAFT_STATE_IDLE)
 	{
-		throttle_Input 	-= (throttleBias - MIN_IDLE_THROT);
+		throt_Input 	-= (throttleBias - MIN_IDLE_THROT);
 		yaw_Input 		-= yawBias;
 		pitch_Input 	-= pitchBias;
 		roll_Input 		-= rollBias;
@@ -110,7 +121,7 @@ bool aircraft_IsFlying()
 	bool rc = false;
 
 	// Only return true if high throttle
-	if(throttle_Input > MIN_THROT) rc = true;
+	if(throt_Input > MIN_THROT) rc = true;
 	return rc;
 }
 
@@ -121,9 +132,10 @@ bool aircraft_IsFlying()
 bool aircraft_Disarming()
 {
 	bool rc = false;
-	if(throttle_Input < MIN_THROT && yaw_Input > 8.5f*RATE_SCALE)
+	if(throt_Input < MIN_THROT && yaw_Input > 8.5f*RATE_SCALE)
 	{
-		if(fabsf(roll_Input) < 5.0f*RATE_SCALE && fabsf(pitch_Input) < 5.0f*RATE_SCALE) rc = true;
+		if(fabsf(roll_Input) < 5.0f*RATE_SCALE && fabsf(pitch_Input) < 5.0f*RATE_SCALE)
+			rc = true;
 	}
 	return rc;
 }
@@ -135,7 +147,7 @@ bool aircraft_Disarming()
 bool aircraft_Arming()
 {
 	bool rc = false;
-	if(throttle_Input < MIN_THROT && yaw_Input < -8.5f*RATE_SCALE)
+	if(throt_Input < MIN_THROT && yaw_Input < -8.5f*RATE_SCALE)
 	{
 		if((roll_Input < -19.0f*RATE_SCALE) && (pitch_Input > 19.0f*RATE_SCALE))
 		{
@@ -177,10 +189,10 @@ void aircraft_UpdateMotors()
 {
 	static float newMotorVal[4] = {0.0f};
 
-	motorPower[MOTOR_FRONT_LEFT]  = throttle_Input;
-	motorPower[MOTOR_FRONT_RIGHT]  = throttle_Input;
-	motorPower[MOTOR_BACK_LEFT]  = throttle_Input;
-	motorPower[MOTOR_BACK_RIGHT]  = throttle_Input;
+	motorPower[MOTOR_FRONT_LEFT]  = throt_Input;
+	motorPower[MOTOR_FRONT_RIGHT]  = throt_Input;
+	motorPower[MOTOR_BACK_LEFT]  = throt_Input;
+	motorPower[MOTOR_BACK_RIGHT]  = throt_Input;
 
 	motorPower[MOTOR_FRONT_LEFT] += PID_GetOutput(&flightControl[PID_ALT]);
 	motorPower[MOTOR_FRONT_LEFT] += PID_GetOutput(&flightControl[PID_PITCH]);
@@ -249,28 +261,30 @@ void aircraft_WriteLED(int LED, int state)
  */
 void aircraft_FlashLED(int LED, uint16_t Freq)
 {
-	static uint32_t lastFlashTicks[4] = {0,0,0,0};
-	if((TotalReadTicks - lastFlashTicks[LED]) > SAMPLE_RATE_HZ(Freq/2))
-	{
-		lastFlashTicks[LED] = TotalReadTicks;
-		switch(LED)
-		{
-		case LED_A:
-			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_12);
-			break;
-		case LED_B:
-			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-			break;
-		case LED_C:
-			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_14);
-			break;
-		case LED_D:
-			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_15);
-			break;
-		default:
-			break;
-		}
-	}
+	flashFreq[LED] = (uint8_t)Freq;
+
+//	static uint32_t lastFlashTicks[4] = {0,0,0,0};
+//	if((TotalReadTicks - lastFlashTicks[LED]) > SAMPLE_RATE_HZ(Freq/2))
+//	{
+//		lastFlashTicks[LED] = TotalReadTicks;
+//		switch(LED)
+//		{
+//		case LED_A:
+//			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_12);
+//			break;
+//		case LED_B:
+//			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+//			break;
+//		case LED_C:
+//			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_14);
+//			break;
+//		case LED_D:
+//			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_15);
+//			break;
+//		default:
+//			break;
+//		}
+//	}
 }
 
 /*
@@ -293,7 +307,7 @@ void aircraft_Reset()
 	alt_Ahrs = roll_Ahrs = pitch_Ahrs = yaw_Ahrs = 0.0f;
 	xgyro_Ahrs = ygyro_Ahrs = zgyro_Ahrs = 0.0f;
 	roll_Input = pitch_Input = yaw_Input = 0.0f;
-	throttle_Input = 0.0f;
+	throt_Input = 0.0f;
 	alpha_Yaw = 0.0f; // Initial yaw value
 
 	PWM_adjust_DutyCycle(&PWMtimer.timer, motorPower[MOTOR_FRONT_LEFT], 0.0f);

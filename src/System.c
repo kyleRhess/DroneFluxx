@@ -114,7 +114,7 @@ void runController()
 				ygyrBiasTemp = 0;
 				zgyrBiasTemp = 0;
 				altBiasTemp = 0;
-				beta = 0.08f;
+				beta = 0.5f;
 				system_Aligned = true;
 				AIRCRAFT_STATE = AIRCRAFT_STATE_ARMED;
 			}
@@ -183,6 +183,7 @@ void runController()
 			else if(!system_Aligned)
 			{
 				aircraft_WriteLED(LED_A, 1);
+				aircraft_WriteLED(LED_B, 1);
 
 				xgyrBiasTemp /= (float)gyroBiasCount;
 				ygyrBiasTemp /= (float)gyroBiasCount;
@@ -197,7 +198,7 @@ void runController()
 				alpha_Yaw = yaw_Madgwick;
 
 				// Set filter back to normal
-				beta = 0.16f;
+				beta = 0.5f;
 
 				PWM_adjust_PulseWidth(&PWMtimer.timer, MOTOR_ESC_1, mapVal(0.0f, 	0.0f, 100.0f, MIN_ESC_US, MAX_ESC_US));
 				PWM_adjust_PulseWidth(&PWMtimer.timer, MOTOR_ESC_2, mapVal(0.0f, 	0.0f, 100.0f, MIN_ESC_US, MAX_ESC_US));
@@ -216,7 +217,7 @@ void runController()
 				armingCount++;
 				if(armingCount >= 2000)
 				{
-					throttleBias 	= throttle_Input;
+					throttleBias 	= throt_Input;
 					yawBias 		= yaw_Input;
 					pitchBias 		= pitch_Input;
 					rollBias 		= roll_Input;
@@ -224,6 +225,11 @@ void runController()
 					aircraft_WriteLED(LED_C, 0);
 					armingCount = 0;
 					AIRCRAFT_STATE = AIRCRAFT_STATE_IDLE;
+
+					aircraft_WriteLED(LED_A, 0);
+					aircraft_WriteLED(LED_B, 1);
+					aircraft_WriteLED(LED_C, 1);
+					aircraft_WriteLED(LED_D, 0);
 				}
 			}
 			else
@@ -253,7 +259,7 @@ void runController()
 				if(armingCount >= 100)
 				{
 					// Must move sticks back to 0 before arming complete
-					if(throttle_Input < MIN_THROT && (fabsf(yaw_Input) < 2.0f * RATE_SCALE) && (fabsf(roll_Input) < 3.0f * RATE_SCALE) && (fabsf(pitch_Input) < 3.0f * RATE_SCALE))
+					if(throt_Input < MIN_THROT && (fabsf(yaw_Input) < 2.0f * RATE_SCALE) && (fabsf(roll_Input) < 3.0f * RATE_SCALE) && (fabsf(pitch_Input) < 3.0f * RATE_SCALE))
 					{
 						aircraft_WriteLED(LED_B, 0);
 						aircraft_WriteLED(LED_C, 0);
@@ -273,25 +279,10 @@ void runController()
 		case AIRCRAFT_STATE_ARMED:
 			aircraft_GetRxInput();
 
-			if(throttle_Input > 80.0f)
-				aircraft_WriteLED(LED_D, 1);
-			else
-				aircraft_WriteLED(LED_D, 0);
-
-			if(throttle_Input > 60.0f)
-				aircraft_WriteLED(LED_C, 1);
-			else
-				aircraft_WriteLED(LED_C, 0);
-
-			if(throttle_Input > 40.0f)
-				aircraft_WriteLED(LED_B, 1);
-			else
-				aircraft_WriteLED(LED_B, 0);
-
-			if(throttle_Input > 20.0f)
-				aircraft_WriteLED(LED_A, 1);
-			else
-				aircraft_WriteLED(LED_A, 0);
+			aircraft_FlashLED(LED_A, 3);
+			aircraft_FlashLED(LED_B, 5);
+			aircraft_FlashLED(LED_C, 8);
+			aircraft_FlashLED(LED_D, 13);
 
 			/*
 			 *
@@ -347,7 +338,7 @@ void runController()
 				PID_Reset(&flightControl[PID_ROLL]);
 				PID_Reset(&flightControl[PID_YAW]);
 				PID_Reset(&flightControl[PID_ALT]);
-				throttle_Input = 0.0f; // reset since it will be idling at %20 otherwise
+				throt_Input = 0.0f; // reset since it will be idling at %20 otherwise
 				aircraft_UpdateMotors();
 			}
 
@@ -355,24 +346,22 @@ void runController()
 			aircraft_UpdateMotors();
 			break;
 		case AIRCRAFT_STATE_DISARMED:
-
+			aircraft_WriteLED(LED_A, 0);
+			aircraft_WriteLED(LED_B, 1);
+			aircraft_WriteLED(LED_C, 1);
 			aircraft_WriteLED(LED_D, 0);
-			aircraft_WriteLED(LED_C, 0);
-			aircraft_WriteLED(LED_B, 0);
-
-			PWM_adjust_PulseWidth(&PWMtimer.timer, MOTOR_ESC_1, mapVal(0.0f, 	0.0f, 100.0f, MIN_ESC_US, MAX_ESC_US));
-			PWM_adjust_PulseWidth(&PWMtimer.timer, MOTOR_ESC_2, mapVal(0.0f, 	0.0f, 100.0f, MIN_ESC_US, MAX_ESC_US));
-			PWM_adjust_PulseWidth(&PWMtimer.timer, MOTOR_ESC_3, mapVal(0.0f, 	0.0f, 100.0f, MIN_ESC_US, MAX_ESC_US));
-			PWM_adjust_PulseWidth(&PWMtimer.timer, MOTOR_ESC_4, mapVal(0.0f, 	0.0f, 100.0f, MIN_ESC_US, MAX_ESC_US));
 
 			// Zero controller otherwise
 			PID_Reset(&flightControl[PID_ALT]);
 			PID_Reset(&flightControl[PID_PITCH]);
 			PID_Reset(&flightControl[PID_ROLL]);
 			PID_Reset(&flightControl[PID_YAW]);
+			throt_Input = 0.0f;
+
+			aircraft_UpdateMotors();
 
 			armingCount++;
-			if(armingCount >= 1000)
+			if(armingCount >= 100)
 			{
 				armingCount = 0;
 				AIRCRAFT_STATE = AIRCRAFT_STATE_IDLE;
@@ -385,7 +374,7 @@ void runController()
 	{
 		SYSTEM_STATE = SYS_STATE_RESET;
 
-		xgyrBiasTemp = ygyrBiasTemp = zgyrBiasTemp = 0.0f;
+		xgyrBiasTemp = ygyrBiasTemp = zgyrBiasTemp = altBiasTemp = 0.0f;
 		armingCount = 0;
 		gyroBiasCount = 0;
 	}

@@ -54,21 +54,14 @@ extern float zaccl_Ahrs;
 extern float roll_Input;
 extern float pitch_Input;
 extern float yaw_Input;
-extern float throttle_Input;
+extern float throt_Input;
 extern float alpha_Yaw;
 extern float throttleBias;
 extern float yawBias;
 extern float pitchBias;
 extern float rollBias;
 
-extern float delta_alt_Ahrs;
-extern float delta_roll_Ahrs;
-extern float delta_pitch_Ahrs;
-extern float delta_yaw_Ahrs;
-extern float last_alt_Ahrs;
-extern float last_roll_Ahrs;
-extern float last_pitch_Ahrs;
-extern float last_yaw_Ahrs;
+extern uint8_t flashFreq[4];
 
 void aircraft_GetRxInput(void);
 bool aircraft_CalibratingInput(void);

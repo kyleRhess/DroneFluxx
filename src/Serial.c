@@ -101,7 +101,7 @@ void transmitSerialData()
 		{
 			float arrt[7] =
 			{
-				xgyro_Ahrs, // Test data
+				pitch_Ahrs, // Test data
 				0.0f,
 				0.0f,
 				0.0f,

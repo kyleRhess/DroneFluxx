@@ -25,8 +25,17 @@ int initData()
  * All this should do is read SPI data and store it.
  * Nothing else. Called from ISR at SAMPLE_RATE kHz.
  */
-void getRawData()
+void getRawData()//(5000 / (200) * 2)
 {
+	if(TotalReadTicks % (5000 / (flashFreq[0] * 2)) == 0 && flashFreq[0] > 0)
+		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_12);
+	if(TotalReadTicks % (5000 / (flashFreq[1] * 2)) == 0 && flashFreq[1] > 0)
+		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+	if(TotalReadTicks % (5000 / (flashFreq[2] * 2)) == 0 && flashFreq[2] > 0)
+		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_14);
+	if(TotalReadTicks % (5000 / (flashFreq[3] * 2)) == 0 && flashFreq[3] > 0)
+		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_15);
+
 	if(SYSTEM_STATE != SYS_STATE_RESET)
 	{
 		// Read gyro & accel data
@@ -77,14 +86,6 @@ void procRawData()
 	roll_Ahrs 			= pitch_Madgwick;
 	pitch_Ahrs 			= roll_Madgwick;
 	yaw_Ahrs 			= yaw_Madgwick;
-
-	delta_pitch_Ahrs 	= 	(pitch_Ahrs 	- last_pitch_Ahrs	) / 0.001f;
-	delta_roll_Ahrs 	= 	(roll_Ahrs 		- last_roll_Ahrs	) / 0.001f;
-	delta_yaw_Ahrs 		= 	(yaw_Ahrs 		- last_yaw_Ahrs		) / 0.001f;
-
-	last_pitch_Ahrs 	= pitch_Ahrs;
-	last_roll_Ahrs 		= roll_Ahrs;
-	last_yaw_Ahrs 		= yaw_Ahrs;
 
 	// Tell system to run control loop
 	SYSTEM_STATE = SYS_STATE_CONTROLLING;
