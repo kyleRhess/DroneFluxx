@@ -48,7 +48,7 @@ void InitializeSystem()
 	InitSPIBus();
 
 	// Serial comm. setup
-	status = InitSerial(115200, UART_STOPBITS_1, UART_WORDLENGTH_8B, UART_PARITY_NONE);
+	status = InitSerial(2000000, UART_STOPBITS_1, UART_WORDLENGTH_8B, UART_PARITY_NONE);
 
 	flightControl[PID_XGYR].kP =  proportionalGain[PID_XGYR] * 0.75f;
 	flightControl[PID_YGYR].kP =  proportionalGain[PID_YGYR] * 0.75f;

@@ -23,7 +23,7 @@ uint8_t *uartBuffer;
 uint8_t uartRx[RX_BUFF_SZ];
 uint8_t uartRxBuffer[1];
 
-uint8_t 	rxIndex;
+uint16_t 	rxIndex;
 uint16_t 	connLoss;
 uint8_t 	firstSync;
 uint16_t 	serialODR;
@@ -44,7 +44,6 @@ struct DataMsg datMsg;
 int InitSerial(uint32_t baudrate, uint32_t stopbits, uint32_t datasize, uint32_t parity);
 void RunSerial(void);
 void transmitSerialData(void);
-void receiveSerial(void);
 uint8_t getStatus(uint8_t msgCount);
 uint8_t procCmd(void);
 uint8_t calcCRC(uint8_t datArr[], size_t size);

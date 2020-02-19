@@ -19,8 +19,6 @@ int InitSerial(uint32_t baudrate, uint32_t stopbits, uint32_t datasize, uint32_t
 	s_UARTHandle.Init.OverSampling = UART_OVERSAMPLING_8;
 	rc = HAL_UART_Init(&s_UARTHandle);
 
-	HAL_UART_Receive_IT(&s_UARTHandle, uartRxBuffer, 1);
-
 	datMsg.msgCnt = 0;
 	serialODR 	= 50;
 	rxIndex 	= 0;
@@ -56,12 +54,6 @@ void RunSerial()
 		}
 		msgReadTicks = 0;
 	}
-	receiveSerial();
-}
-
-void receiveSerial()
-{
-    HAL_UART_Receive_IT(&s_UARTHandle, uartRxBuffer, 1);
 }
 
 uint8_t getStatus(uint8_t msgCount)
@@ -99,9 +91,10 @@ void transmitSerialData()
 	{
 		case SERIAL_MSG_DRONE:
 		{
+			// Test data
 			float arrt[7] =
 			{
-				pitch_Ahrs, // Test data
+				pitch_Ahrs,
 				0.0f,
 				0.0f,
 				0.0f,
@@ -251,32 +244,6 @@ uint8_t calcCRC(uint8_t datArr[], size_t size)
 /*
  * UART Interrupts
  */
-static int len = 0;
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
-{
-	if(UartHandle->Instance == USART1)
-	{
-		if(UartRxCmdReady == RESET)
-		{
-			// copy ISR buffer into RX buffer
-			uartRx[rxIndex++] = uartRxBuffer[0];
-
-			// find number of incoming bytes
-			if(rxIndex == 3) len = uartRx[2];
-			if(rxIndex == (len + 5)) UartRxCmdReady = SET;
-
-			if(rxIndex >= 255)
-			{
-				memset(&uartRx, 0, RX_BUFF_SZ);
-				rxIndex = 0;
-				UartRxCmdReady = RESET;
-			}
-
-			HAL_UART_Receive_IT(&s_UARTHandle, uartRxBuffer, 1);
-		}
-	}
-}
-
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle)
 {
 	if(UartHandle->Instance == USART1)
@@ -301,10 +268,42 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *UartHandle)
 	}
 }
 
+/*
+ *
+ */
 void USART1_IRQHandler(void)
 {
-//	 HAL_DMA_IRQHandler(&hdma_usart1_rx);
-	  HAL_UART_IRQHandler(&s_UARTHandle);
+	static int len = 0;
+	if(s_UARTHandle.Instance == USART1)
+	{
+		if(s_UARTHandle.gState != HAL_UART_STATE_BUSY_TX &&
+				UartRxCmdReady == RESET)
+		{
+			// Copy ISR buffer into RX buffer
+			uartRx[rxIndex++] = (uint8_t)(s_UARTHandle.Instance->DR & (uint8_t)0x00FF);
+
+			__HAL_UART_FLUSH_DRREGISTER(&s_UARTHandle);
+			__HAL_UART_CLEAR_FEFLAG(&s_UARTHandle);
+
+			// Find number of incoming bytes
+			if(rxIndex == 3) len = uartRx[2];
+			if(rxIndex == (len + 5)) UartRxCmdReady = SET;
+
+			if(rxIndex >= RX_BUFF_SZ)
+			{
+				memset(&uartRx, 0, RX_BUFF_SZ);
+				rxIndex = 0;
+				UartRxCmdReady = RESET;
+			}
+			return;
+		}
+		else if(s_UARTHandle.gState == HAL_UART_STATE_BUSY_TX)
+		{
+			//UartReady = RESET;
+		}
+	}
+	HAL_UART_IRQHandler(&s_UARTHandle);
+	return;
 }
 
 void HAL_UART_MspInit(UART_HandleTypeDef* huart)
@@ -313,6 +312,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
 	{
 		GPIO_InitTypeDef GPIO_InitStructureUart = {0};
 
+		// Setup all our peripherals
 		__HAL_RCC_USART1_CLK_ENABLE();
 		__HAL_RCC_GPIOB_CLK_ENABLE();
 
@@ -322,6 +322,9 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
 		GPIO_InitStructureUart.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
 		GPIO_InitStructureUart.Pull = GPIO_PULLUP;
 		HAL_GPIO_Init(GPIOB, &GPIO_InitStructureUart);
+
+		// Enable the UART interrupt
+		__HAL_UART_ENABLE_IT(huart, UART_IT_RXNE);
 
 		HAL_NVIC_SetPriority(USART1_IRQn, 4, 0);
 		HAL_NVIC_EnableIRQ(USART1_IRQn);
