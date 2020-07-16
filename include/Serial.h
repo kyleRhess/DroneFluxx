@@ -6,7 +6,7 @@
 
 #define MSG_RATE_HZ(xxx) 	(SAMPLE_RATE / xxx)
 
-#define RX_BUFF_SZ 256
+#define RX_BUFF_SZ 			4096
 
 #define CMD_SET_OUT_DAT 	0x01
 #define CMD_SET_OUT_RATE 	0x02
@@ -21,6 +21,7 @@
 
 uint8_t *uartBuffer;
 uint8_t uartRx[RX_BUFF_SZ];
+uint8_t uartTx[RX_BUFF_SZ];
 uint8_t uartRxBuffer[1];
 
 uint16_t 	rxIndex;

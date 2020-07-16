@@ -15,17 +15,14 @@ uint8_t 	Data_rxBuffA[64];
 int initData()
 {
 	memset(Data_rxBuffA, 0, sizeof(Data_rxBuffA));
-
-	InitSPIBus();
-
-	return HAL_OK;
+	return InitSPIBus();
 }
 
 /*
  * All this should do is read SPI data and store it.
  * Nothing else. Called from ISR at SAMPLE_RATE kHz.
  */
-void getRawData()//(5000 / (200) * 2)
+void getRawData()
 {
 	if(TotalReadTicks % (5000 / (flashFreq[0] * 2)) == 0 && flashFreq[0] > 0)
 		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_12);
@@ -52,10 +49,14 @@ void getRawData()//(5000 / (200) * 2)
 		// Run the filter on the current inertial measures @ SAMPLE_RATE
 		if(SYS_READ_TIME(TotalReadTicks) > 0.1f)
 		{
-			MadgwickAHRSupdateIMU(xgyro_Ahrs * (PI / 180.0f),
-								  ygyro_Ahrs * (PI / 180.0f),
-								  zgyro_Ahrs * (PI / 180.0f),
-								  xaccl_Ahrs, yaccl_Ahrs, zaccl_Ahrs);
+			MadgwickAHRSupdateIMU(
+					xgyro_Ahrs * (PI / 180.0f),
+					ygyro_Ahrs * (PI / 180.0f),
+					zgyro_Ahrs * (PI / 180.0f),
+					xaccl_Ahrs,
+					yaccl_Ahrs,
+					zaccl_Ahrs
+			);
 		}
 
 		// Increment main counters at SAMPLE_RATE
@@ -94,8 +95,10 @@ void procRawData()
 /*
  * Prepare the SPI buses
  */
-void InitSPIBus()
+int InitSPIBus()
 {
+	int rc = 0;
+
 	SPI_Initialize(&SPI_Bus_2, SPI2, SPI_BAUDRATEPRESCALER_16, SPI_FIRSTBIT_MSB, SPI_POLARITY_HIGH);
 	SPI_Initialize_CS(SPI2_CS_PORT, SPI2_CS0);
 	SPI_Initialize_CS(SPI2_CS_PORT, SPI2_CS1);
@@ -109,18 +112,22 @@ void InitSPIBus()
 	HAL_NVIC_SetPriority(SPI2_IRQn, 3, 0);
 	HAL_NVIC_EnableIRQ(SPI2_IRQn);
 
-	initIMU();
-	initBARO();
+	rc |= initIMU();
+	rc |= initBARO();
+
+	return rc;
 }
 
 
 int InitSamplingTimer()
 {
 	__HAL_RCC_TIM9_CLK_ENABLE();
-    SamplingTimer.Init.Prescaler = 250; // 5 kHz = 100E6/((250)*(80)*(1))
-    SamplingTimer.Init.CounterMode = TIM_COUNTERMODE_UP;
-    SamplingTimer.Init.Period = 80; // 5 kHz = 100E6/((250)*(80)*(1))
+
+	SamplingTimer.Init.Prescaler 	= 250; // 5 kHz = 100E6/((250)*(80)*(1))
+    SamplingTimer.Init.CounterMode 	= TIM_COUNTERMODE_UP;
+    SamplingTimer.Init.Period 		= 80; // 5 kHz = 100E6/((250)*(80)*(1))
     SamplingTimer.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+
     if(HAL_TIM_Base_Init(&SamplingTimer) != HAL_OK) return HAL_ERROR;
     if(HAL_TIM_Base_Start_IT(&SamplingTimer) != HAL_OK) return HAL_ERROR;
     return HAL_OK;

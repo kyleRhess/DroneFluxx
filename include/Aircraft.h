@@ -70,8 +70,10 @@ bool aircraft_IsFlying(void);
 bool aircraft_Disarming(void);
 bool aircraft_Arming(void);
 void aircraft_UpdateMotors(void);
-void aircraft_WriteLED(int,int);
-void aircraft_FlashLED(int,uint16_t);
+void aircraft_Set_LED(int);
+void aircraft_Reset_LED(int);
+void aircraft_WriteLED(int, int);
+void aircraft_FlashLED(int, uint8_t);
 void aircraft_Reset(void);
 
 #endif

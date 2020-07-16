@@ -79,7 +79,7 @@ uint8_t IMU_rxBuff[64];
 extern void readIMU(uint8_t * arr);
 extern void accumulateIMU(uint8_t * arr);
 extern void procIMU();
-extern void initIMU();
+extern int initIMU();
 
 
 #endif /* IMU_H_ */

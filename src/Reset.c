@@ -9,10 +9,10 @@ static int rstCounter = 0;
 int Reset_Init()
 {
 	GPIO_InitTypeDef gRstPin;
-	gRstPin.Pin = RST_PIN;
-	gRstPin.Mode = GPIO_MODE_INPUT;
-	gRstPin.Pull = GPIO_NOPULL;
-	gRstPin.Speed = GPIO_SPEED_HIGH;
+	gRstPin.Pin 	= RST_PIN;
+	gRstPin.Mode 	= GPIO_MODE_INPUT;
+	gRstPin.Pull 	= GPIO_NOPULL;
+	gRstPin.Speed 	= GPIO_SPEED_HIGH;
 	HAL_GPIO_Init(GPIOB, &gRstPin);
 
 	return HAL_OK;

@@ -10,22 +10,22 @@ int InitSerial(uint32_t baudrate, uint32_t stopbits, uint32_t datasize, uint32_t
 {
 	int rc = HAL_OK;
 
-	s_UARTHandle.Init.BaudRate   = baudrate;
-	s_UARTHandle.Init.WordLength = datasize;
-	s_UARTHandle.Init.StopBits   = stopbits;
-	s_UARTHandle.Init.Parity     = parity;
-	s_UARTHandle.Init.Mode       = USART_MODE_TX_RX;
-	s_UARTHandle.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-	s_UARTHandle.Init.OverSampling = UART_OVERSAMPLING_8;
+	s_UARTHandle.Init.BaudRate   	= baudrate;
+	s_UARTHandle.Init.WordLength 	= datasize;
+	s_UARTHandle.Init.StopBits   	= stopbits;
+	s_UARTHandle.Init.Parity     	= parity;
+	s_UARTHandle.Init.Mode       	= USART_MODE_TX_RX;
+	s_UARTHandle.Init.HwFlowCtl 	= UART_HWCONTROL_NONE;
+	s_UARTHandle.Init.OverSampling 	= UART_OVERSAMPLING_8;
 	rc = HAL_UART_Init(&s_UARTHandle);
 
-	datMsg.msgCnt = 0;
-	serialODR 	= 50;
-	rxIndex 	= 0;
-	connLoss 	= 0;
-	firstSync 	= 1;
-	handshakeCMD = 0;
-	serialMSG 	= 0;
+	datMsg.msgCnt 	= 0;
+	serialODR 		= 50;
+	rxIndex 		= 0;
+	connLoss 		= 0;
+	firstSync 		= 1;
+	handshakeCMD 	= 0;
+	serialMSG 		= 0;
 
 	return rc;
 }
@@ -49,7 +49,7 @@ void RunSerial()
 		{
 			rxIndex = 0;
 			errorSet = false;
-			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_15, GPIO_PIN_RESET);
+			aircraft_Reset_LED(LED_D);
 			memset(uartRx, 0, sizeof(uartRx));
 		}
 		msgReadTicks = 0;
@@ -225,7 +225,7 @@ float toFloat(uint8_t bytes[], int startI)
 {
 	uint32_t rcUint = (uint32_t)((bytes[3+startI] << 24) |
 								 (bytes[2+startI] << 16) |
-								 (bytes[1+startI] << 8) |
+								 (bytes[1+startI] << 8)	 |
 								 (bytes[0+startI] << 0));
 	float rcFloat = *((float*)&rcUint);
 	return rcFloat;
@@ -247,9 +247,7 @@ uint8_t calcCRC(uint8_t datArr[], size_t size)
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle)
 {
 	if(UartHandle->Instance == USART1)
-	{
 		UartReady = RESET;
-	}
 }
 
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *UartHandle)
@@ -261,9 +259,7 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *UartHandle)
 		if(__HAL_UART_GET_FLAG(UartHandle, UART_FLAG_ORE) != RESET)
 		{
 			if(__HAL_UART_GET_FLAG(UartHandle, UART_FLAG_RXNE) == RESET)
-			{
 				UartHandle->Instance->DR;
-			}
 		}
 	}
 }
@@ -274,6 +270,7 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *UartHandle)
 void USART1_IRQHandler(void)
 {
 	static int len = 0;
+	static bool set = false;
 	if(s_UARTHandle.Instance == USART1)
 	{
 		if(s_UARTHandle.gState != HAL_UART_STATE_BUSY_TX &&
@@ -286,12 +283,26 @@ void USART1_IRQHandler(void)
 			__HAL_UART_CLEAR_FEFLAG(&s_UARTHandle);
 
 			// Find number of incoming bytes
-			if(rxIndex == 3) len = uartRx[2];
-			if(rxIndex == (len + 5)) UartRxCmdReady = SET;
+//			if(rxIndex == 3) len = uartRx[2];
+//			if(rxIndex == (len + 5)) UartRxCmdReady = SET;
+
+			if(rxIndex % 128 == 0 && set)
+			{
+				aircraft_Reset_LED(LED_D);
+				set = !set;
+			}
+			else if(rxIndex % 128 == 0 && !set)
+			{
+				aircraft_Set_LED(LED_D);
+				set = !set;
+			}
+
 
 			if(rxIndex >= RX_BUFF_SZ)
 			{
-				memset(&uartRx, 0, RX_BUFF_SZ);
+				memcpy(&uartTx, &uartRx, RX_BUFF_SZ);
+				HAL_UART_Transmit_IT(&s_UARTHandle, uartTx, RX_BUFF_SZ);
+//				memset(&uartRx, 0, RX_BUFF_SZ);
 				rxIndex = 0;
 				UartRxCmdReady = RESET;
 			}

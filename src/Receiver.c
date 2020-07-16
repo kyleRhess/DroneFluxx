@@ -1,7 +1,7 @@
 #include "Receiver.h"
 #include "System.h"
 
-static TIM_HandleTypeDef inputPWMTimer = { .Instance = TIM1 };
+static TIM_HandleTypeDef inPWMTimer = { .Instance = TIM1 };
 volatile char previous_state[4];
 volatile uint32_t timer[4];
 volatile uint16_t this_timer_value[4] = { 0, 0, 0, 0 };
@@ -16,33 +16,34 @@ int InitReceiverTimer()
 	__HAL_RCC_GPIOA_CLK_ENABLE();
 	__HAL_RCC_TIM1_CLK_ENABLE();
 
-	inputPWMTimer.Instance = TIM1;
-	inputPWMTimer.Init.Prescaler = inputPWMTimerPrescaler;
-	inputPWMTimer.Init.CounterMode = TIM_COUNTERMODE_UP;
-	inputPWMTimer.Init.Period = 0xFFFF;
-	inputPWMTimer.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-	inputPWMTimer.Init.RepetitionCounter = 0;
+	inPWMTimer.Instance 				= TIM1;
+	inPWMTimer.Init.Prescaler 			= inputPWMTimerPrescaler;
+	inPWMTimer.Init.CounterMode 		= TIM_COUNTERMODE_UP;
+	inPWMTimer.Init.Period 				= 0xFFFF;
+	inPWMTimer.Init.ClockDivision 		= TIM_CLOCKDIVISION_DIV1;
+	inPWMTimer.Init.RepetitionCounter 	= 0;
 
-	if(HAL_TIM_IC_Init(&inputPWMTimer) != HAL_OK) return HAL_ERROR;
+	if(HAL_TIM_IC_Init(&inPWMTimer) != HAL_OK)
+		return HAL_ERROR;
 
-	TIM_IC_InitTypeDef sConfigIC = {0};
-	sConfigIC.ICPolarity = TIM_INPUTCHANNELPOLARITY_BOTHEDGE;
-	sConfigIC.ICSelection = TIM_ICSELECTION_DIRECTTI;
-	sConfigIC.ICPrescaler = TIM_ICPSC_DIV1;
-	sConfigIC.ICFilter = 0;
+	TIM_IC_InitTypeDef sConfigIC 	= {0};
+	sConfigIC.ICPolarity 			= TIM_INPUTCHANNELPOLARITY_BOTHEDGE;
+	sConfigIC.ICSelection 			= TIM_ICSELECTION_DIRECTTI;
+	sConfigIC.ICPrescaler 			= TIM_ICPSC_DIV1;
+	sConfigIC.ICFilter 				= 0;
 
-	if(HAL_TIM_IC_ConfigChannel(&inputPWMTimer, &sConfigIC, TIM_CHANNEL_1) != HAL_OK ||
-	   HAL_TIM_IC_ConfigChannel(&inputPWMTimer, &sConfigIC, TIM_CHANNEL_2) != HAL_OK ||
-	   HAL_TIM_IC_ConfigChannel(&inputPWMTimer, &sConfigIC, TIM_CHANNEL_3) != HAL_OK ||
-	   HAL_TIM_IC_ConfigChannel(&inputPWMTimer, &sConfigIC, TIM_CHANNEL_4))
+	if(HAL_TIM_IC_ConfigChannel(&inPWMTimer, &sConfigIC, TIM_CHANNEL_1) != HAL_OK ||
+	   HAL_TIM_IC_ConfigChannel(&inPWMTimer, &sConfigIC, TIM_CHANNEL_2) != HAL_OK ||
+	   HAL_TIM_IC_ConfigChannel(&inPWMTimer, &sConfigIC, TIM_CHANNEL_3) != HAL_OK ||
+	   HAL_TIM_IC_ConfigChannel(&inPWMTimer, &sConfigIC, TIM_CHANNEL_4))
 	{
 		return HAL_ERROR;
 	}
 
-	if(HAL_TIM_IC_Start_IT(&inputPWMTimer, TIM_CHANNEL_1) != HAL_OK ||
-	   HAL_TIM_IC_Start_IT(&inputPWMTimer, TIM_CHANNEL_2) != HAL_OK ||
-	   HAL_TIM_IC_Start_IT(&inputPWMTimer, TIM_CHANNEL_3) != HAL_OK ||
-	   HAL_TIM_IC_Start_IT(&inputPWMTimer, TIM_CHANNEL_4))
+	if(HAL_TIM_IC_Start_IT(&inPWMTimer, TIM_CHANNEL_1) != HAL_OK ||
+	   HAL_TIM_IC_Start_IT(&inPWMTimer, TIM_CHANNEL_2) != HAL_OK ||
+	   HAL_TIM_IC_Start_IT(&inPWMTimer, TIM_CHANNEL_3) != HAL_OK ||
+	   HAL_TIM_IC_Start_IT(&inPWMTimer, TIM_CHANNEL_4))
 	{
 		return HAL_ERROR;
 	}
@@ -53,12 +54,12 @@ int InitReceiverTimer()
 void TIM1_CC_IRQHandler(void)
 {
 	HAL_NVIC_ClearPendingIRQ(TIM1_CC_IRQn);
-    HAL_TIM_IRQHandler(&inputPWMTimer);
+    HAL_TIM_IRQHandler(&inPWMTimer);
 }
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *tim_handle)
 {
-	if (tim_handle == &inputPWMTimer)
+	if (tim_handle == &inPWMTimer)
 	{
 		if(GPIOA->IDR & GPIO_PIN_8)
 		{
@@ -148,8 +149,8 @@ void HAL_TIM_IC_MspInit(TIM_HandleTypeDef* htim_base)
   {
     /* Peripheral clock enable */
     __HAL_RCC_TIM1_CLK_ENABLE();
-
     __HAL_RCC_GPIOA_CLK_ENABLE();
+
     /**TIM1 GPIO Configuration
     PA8     ------> TIM1_CH1
     */

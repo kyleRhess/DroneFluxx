@@ -25,7 +25,7 @@ extern volatile uint32_t msgReadTicks;
 void getRawData(void);
 void procRawData(void);
 int InitSamplingTimer(void);
-void InitSPIBus(void);
+int InitSPIBus(void);
 
 int initData(void);
 

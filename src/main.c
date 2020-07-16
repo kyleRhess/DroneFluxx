@@ -73,8 +73,10 @@ static void setHighSystemClk(void);
 
 int main(int argc, char* argv[])
 {
+	int status = HAL_OK;
+
 	setHighSystemClk();
-	InitializeSystem();
+	status = InitializeSystem();
 
 	RCC->AHB1ENR = RCC_AHB1ENR_GPIOCEN;
 	RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
@@ -88,11 +90,21 @@ int main(int argc, char* argv[])
 	gDataPin.Speed = GPIO_SPEED_HIGH;
 	HAL_GPIO_Init(GPIOC, &gDataPin);
 
+	// Catch initialize failure
+	while(status)
+	{
+		if(status & ERROR_IMU) 	aircraft_WriteLED(LED_A, 1);
+		if(status & ERROR_BARO) aircraft_WriteLED(LED_B, 1);
+		if(status & ERROR_GPS) 	aircraft_WriteLED(LED_C, 1);
+		if(status & ERROR_MAG) 	aircraft_WriteLED(LED_D, 1);
+	}
+
 	SYSTEM_STATE = SYS_STATE_IDLE;
 	AIRCRAFT_STATE = AIRCRAFT_STATE_ALIGNING;
 
 	while (1)
 	{
+		// Start main loop
 		RunSystem();
 		RunSerial();
 	}
@@ -114,9 +126,11 @@ void setHighSystemClk(void)
 	// This is tuned for NUCLEO-F411; update it for your board.
 	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
 	RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+
 	// 16 is the average calibration value, adjust for your own board.
 	RCC_OscInitStruct.HSICalibrationValue = 16;
 	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+
 	// This assumes the HSI_VALUE is a multiple of 1 MHz. If this is not
 	// your case, you have to recompute these PLL constants.
 	RCC_OscInitStruct.PLL.PLLM = (HSI_VALUE/1000000u);
@@ -127,11 +141,13 @@ void setHighSystemClk(void)
 	HAL_RCC_OscConfig(&RCC_OscInitStruct);
 
 	RCC_ClkInitTypeDef RCC_ClkInitStruct;
+
 	// Select PLL as system clock source and configure the HCLK, PCLK1 and PCLK2
 	// clocks dividers
 	RCC_ClkInitStruct.ClockType = (RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK
 	  | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2);
 	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+
 	// This is expected to work for most large cores.
 	// Check and update it for your own configuration.
 	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;

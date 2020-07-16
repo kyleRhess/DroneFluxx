@@ -32,8 +32,11 @@ void PID_Update(PID_Controller * _PID, float systemFeedback)
 	_PID->DTerm = -_PID->kD * _PID->deltaInput / _PID->deltaTime;
 
 	// Prevent integrator wind-up
-	if(_PID->ITerm > _PID->windupGuard) _PID->ITerm = _PID->windupGuard;
-	if(_PID->ITerm < -_PID->windupGuard) _PID->ITerm = -_PID->windupGuard;
+	if(_PID->ITerm > _PID->windupGuard)
+		_PID->ITerm = _PID->windupGuard;
+
+	if(_PID->ITerm < -_PID->windupGuard)
+		_PID->ITerm = -_PID->windupGuard;
 
 	// Sum terms into controller output
 	_PID->controllerOutput = _PID->PTerm + _PID->ITerm + _PID->DTerm;

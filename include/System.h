@@ -93,6 +93,11 @@ typedef int bool;
 #define RWBIT 			0x7f
 #define MSBIT 			0xbf
 
+#define ERROR_IMU		0x01
+#define ERROR_BARO		0x02
+#define ERROR_GPS		0x04
+#define ERROR_MAG		0x08
+
 
 typedef enum
 {
@@ -150,7 +155,7 @@ void RunSystem();
 void runController();
 void resetController();
 
-void InitializeSystem(void);
+int InitializeSystem(void);
 int InitPWMOutput(void);
 int InitPID(void);
 

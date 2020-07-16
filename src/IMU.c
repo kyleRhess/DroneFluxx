@@ -14,7 +14,7 @@ typedef struct {
 float zacc, xacc, yacc 							= 0.0f;
 float zgyr, xgyr, ygyr 							= 0.0f;
 float zgyrBias, xgyrBias, ygyrBias, altBias 	= 0.0f;
-static int16_t imuDataCount 			= 0;
+static int16_t imuDataCount 					= 0;
 
 /*
  * Register Address/Value pairs
@@ -133,7 +133,7 @@ void procIMU()
 /*
  * Initialize IMU registers and ensure we can read it
  */
-void initIMU()
+int initIMU()
 {
 	int i = 0;
 	while(initReg[i].addr != 0)
@@ -144,7 +144,7 @@ void initIMU()
 		if(i == 0)
 		{
 			SPI_SendReceive(&SPI_Bus_2, SPI2_CS_PORT, SPI2_CS0, &IMU_txBuff[0], &IMU_rxBuff[0], 2);
-			while(IMU_rxBuff[1] != 0x6a){/*Catch failure to read*/}
+			if(IMU_rxBuff[1] != 0x6a){return ERROR_IMU;/*Catch failure to read*/}
 		}
 		else
 		{
@@ -153,4 +153,5 @@ void initIMU()
 		i++;
 	}
 	HAL_Delay(1);
+	return 0;
 }

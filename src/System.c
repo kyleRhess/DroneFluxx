@@ -12,9 +12,9 @@ float motorPower[MOTOR_NUM];
 
 bool system_Aligned = false;
 
-float proportionalGain[PID_NUM] 				= {0.210000f, 0.210000f, 0.200000f, 2.20f};
-float integralGain[PID_NUM] 					= {0.212125f, 0.212125f, 0.16125f, 2.50f};
-float derivativeGain[PID_NUM] 					= {0.00010f, 0.00010f, 0.000010f, 0.175f};
+float proportionalGain[PID_NUM] 	= {0.210000f, 0.210000f, 0.200000f, 2.20f};
+float integralGain[PID_NUM] 		= {0.212125f, 0.212125f, 0.16125f, 2.50f};
+float derivativeGain[PID_NUM] 		= {0.00010f, 0.00010f, 0.000010f, 0.175f};
 
 volatile SYS_STATE SYSTEM_STATE 	= SYS_STATE_NONE;
 volatile CRAFT_STATE AIRCRAFT_STATE = AIRCRAFT_STATE_NONE;
@@ -22,40 +22,36 @@ volatile CRAFT_STATE AIRCRAFT_STATE = AIRCRAFT_STATE_NONE;
 /*
  * Initialize all interrupts and other systems
  */
-void InitializeSystem()
+int InitializeSystem()
 {
 	// Less inertia on roll axis so reduce gains
 	proportionalGain[PID_ROLL] 	*= 0.80f;
 	integralGain[PID_ROLL] 		*= 0.80f;
 	derivativeGain[PID_ROLL] 	*= 0.80f;
 
-	status = HAL_Init();
-	status = initData();
+	status |= HAL_Init();
+	status |= initData();
 
 	// Sensor sampling timer
-	status = InitSamplingTimer();
+	status |= InitSamplingTimer();
 
 	// Receiver input timer
-	status = InitReceiverTimer();
+	status |= InitReceiverTimer();
 
 	// ESC output PWM
-	status = InitPWMOutput();
+	status |= InitPWMOutput();
 
 	// PID controller setup
-	status = InitPID();
+	status |= InitPID();
 
-	status = Reset_Init();
-	InitSPIBus();
+	status |= Reset_Init();
 
 	// Serial comm. setup
-	status = InitSerial(2000000, UART_STOPBITS_1, UART_WORDLENGTH_8B, UART_PARITY_NONE);
+	status |= InitSerial(115200, UART_STOPBITS_1, UART_WORDLENGTH_8B, UART_PARITY_NONE);
 
 	flightControl[PID_XGYR].kP =  proportionalGain[PID_XGYR] * 0.75f;
 	flightControl[PID_YGYR].kP =  proportionalGain[PID_YGYR] * 0.75f;
 	flightControl[PID_ZGYR].kP =  proportionalGain[PID_ZGYR] * 0.85f;
-
-	// Catch initialize failure
-	while(status){;}
 
 	// Start data acquisition sample timer interrupt
 	HAL_NVIC_SetPriority(TIM1_BRK_TIM9_IRQn,0,0);
@@ -66,6 +62,8 @@ void InitializeSystem()
 	{
 		motorPower[i] = 0.0f;
 	}
+
+	return status;
 }
 
 
@@ -93,9 +91,9 @@ void RunSystem()
 void runController()
 {
 	static float xgyrBiasTemp, ygyrBiasTemp, zgyrBiasTemp, altBiasTemp = 0.0f;
-	static float initialTime = 0.0f;
-	static int armingCount = 0;
-	static long gyroBiasCount = 0;
+	static float initialTime 	= 0.0f;
+	static int armingCount 		= 0;
+	static long gyroBiasCount 	= 0;
 
 	switch(AIRCRAFT_STATE)
 	{
@@ -182,8 +180,8 @@ void runController()
 			}
 			else if(!system_Aligned)
 			{
-				aircraft_WriteLED(LED_A, 1);
-				aircraft_WriteLED(LED_B, 1);
+				aircraft_Set_LED(LED_A);
+				aircraft_Set_LED(LED_B);
 
 				xgyrBiasTemp /= (float)gyroBiasCount;
 				ygyrBiasTemp /= (float)gyroBiasCount;
@@ -213,8 +211,9 @@ void runController()
 			if(!aircraft_CalibratingInput() && aircraft_IsCalibrated())
 			{
 				aircraft_GetRxInput();
-				aircraft_WriteLED(LED_C, 1);
+				aircraft_Set_LED(LED_C);
 				armingCount++;
+
 				if(armingCount >= 2000)
 				{
 					throttleBias 	= throt_Input;
@@ -222,19 +221,19 @@ void runController()
 					pitchBias 		= pitch_Input;
 					rollBias 		= roll_Input;
 
-					aircraft_WriteLED(LED_C, 0);
-					armingCount = 0;
-					AIRCRAFT_STATE = AIRCRAFT_STATE_IDLE;
+					aircraft_Reset_LED(LED_C);
+					armingCount 	= 0;
+					AIRCRAFT_STATE 	= AIRCRAFT_STATE_IDLE;
 
-					aircraft_WriteLED(LED_A, 0);
-					aircraft_WriteLED(LED_B, 1);
-					aircraft_WriteLED(LED_C, 1);
-					aircraft_WriteLED(LED_D, 0);
+					aircraft_Reset_LED(LED_A);
+					aircraft_Set_LED(LED_B);
+					aircraft_Set_LED(LED_C);
+					aircraft_Reset_LED(LED_D);
 				}
 			}
 			else
 			{
-				aircraft_WriteLED(LED_C, 0);
+				aircraft_Reset_LED(LED_C);
 				armingCount = 0;
 			}
 
@@ -258,15 +257,16 @@ void runController()
 				armingCount++;
 				if(armingCount >= 100)
 				{
-					// Must move sticks back to 0 before arming complete
+					// Must move sticks back to ~0 before arming complete
 					if(throt_Input < MIN_THROT && (fabsf(yaw_Input) < 2.0f * RATE_SCALE) && (fabsf(roll_Input) < 3.0f * RATE_SCALE) && (fabsf(pitch_Input) < 3.0f * RATE_SCALE))
 					{
-						aircraft_WriteLED(LED_B, 0);
-						aircraft_WriteLED(LED_C, 0);
+						aircraft_Reset_LED(LED_B);
+						aircraft_Reset_LED(LED_C);
+
 						aircraft_FlashLED(LED_A, 0);
 
-						armingCount = 0;
-						AIRCRAFT_STATE = AIRCRAFT_STATE_ARMED;
+						armingCount 	= 0;
+						AIRCRAFT_STATE 	= AIRCRAFT_STATE_ARMED;
 					}
 				}
 			}
@@ -285,17 +285,15 @@ void runController()
 			aircraft_FlashLED(LED_D, 13);
 
 			/*
-			 *
 			 * Disarming signal
-			 *
 			 */
 			if(aircraft_Disarming())
 			{
 				armingCount++;
 				if(armingCount >= 200)
 				{
-					armingCount = 0;
-					AIRCRAFT_STATE = AIRCRAFT_STATE_DISARMED;
+					armingCount 	= 0;
+					AIRCRAFT_STATE 	= AIRCRAFT_STATE_DISARMED;
 				}
 			}
 			else
@@ -338,7 +336,9 @@ void runController()
 				PID_Reset(&flightControl[PID_ROLL]);
 				PID_Reset(&flightControl[PID_YAW]);
 				PID_Reset(&flightControl[PID_ALT]);
-				throt_Input = 0.0f; // reset since it will be idling at %20 otherwise
+
+				// reset since it will be idling at %20 otherwise
+				throt_Input = 0.0f;
 				aircraft_UpdateMotors();
 			}
 
@@ -346,10 +346,10 @@ void runController()
 			aircraft_UpdateMotors();
 			break;
 		case AIRCRAFT_STATE_DISARMED:
-			aircraft_WriteLED(LED_A, 0);
-			aircraft_WriteLED(LED_B, 1);
-			aircraft_WriteLED(LED_C, 1);
-			aircraft_WriteLED(LED_D, 0);
+			aircraft_Reset_LED(LED_A);
+			aircraft_Set_LED(LED_B);
+			aircraft_Set_LED(LED_C);
+			aircraft_Reset_LED(LED_D);
 
 			// Zero controller otherwise
 			PID_Reset(&flightControl[PID_ALT]);
@@ -374,14 +374,12 @@ void runController()
 	{
 		SYSTEM_STATE = SYS_STATE_RESET;
 
-		xgyrBiasTemp = ygyrBiasTemp = zgyrBiasTemp = altBiasTemp = 0.0f;
-		armingCount = 0;
-		gyroBiasCount = 0;
+		xgyrBiasTemp 	= ygyrBiasTemp = zgyrBiasTemp = altBiasTemp = 0.0f;
+		armingCount 	= 0;
+		gyroBiasCount 	= 0;
 	}
 	else
-	{
-		SYSTEM_STATE = SYS_STATE_IDLE;
-	}
+		SYSTEM_STATE 	= SYS_STATE_IDLE;
 }
 
 /*
@@ -394,28 +392,28 @@ void resetController()
 	PID_Reset(&flightControl[PID_ROLL]);
 	PID_Reset(&flightControl[PID_YAW]);
 
-	aircraft_WriteLED(LED_A, 0);
-	aircraft_WriteLED(LED_B, 0);
-	aircraft_WriteLED(LED_C, 0);
-	aircraft_WriteLED(LED_D, 0);
+	aircraft_Reset_LED(LED_A);
+	aircraft_Reset_LED(LED_B);
+	aircraft_Reset_LED(LED_C);
+	aircraft_Reset_LED(LED_D);
 
 	aircraft_Reset();
 
-	zacc = xacc = yacc = 0.0f;
-	zgyr = xgyr = ygyr = 0.0f;
-	zgyrBias = xgyrBias = ygyrBias = 0.0f;
-	xgyro_Ahrs = ygyro_Ahrs = zgyro_Ahrs = 0.0f;
+	zacc 			= xacc 			= yacc 			= 0.0f;
+	zgyr 			= xgyr 			= ygyr 			= 0.0f;
+	zgyrBias 		= xgyrBias 		= ygyrBias 		= 0.0f;
+	xgyro_Ahrs 		= ygyro_Ahrs 	= zgyro_Ahrs 	= 0.0f;
 
-	system_Aligned = false;
+	system_Aligned 	= false;
 
-	ReadTicks = 0;
-	TotalReadTicks = 0;
-	msgReadTicks = 0;
+	ReadTicks 		= 0;
+	TotalReadTicks 	= 0;
+	msgReadTicks 	= 0;
 
 	initData();
 
-	SYSTEM_STATE = SYS_STATE_IDLE;
-	AIRCRAFT_STATE = AIRCRAFT_STATE_ALIGNING;
+	SYSTEM_STATE 	= SYS_STATE_IDLE;
+	AIRCRAFT_STATE 	= AIRCRAFT_STATE_ALIGNING;
 }
 
 /*
@@ -455,8 +453,7 @@ int InitPID()
 }
 
 /*
- * Maps input values 'x' from 'in_min' to 'out_min',
- * and from 'in_max' to 'out_max.'
+ * Maps input values 'x' from 'in_min' to 'out_min', and from 'in_max' to 'out_max.'
  */
 float mapVal(float x, float in_min, float in_max, float out_min, float out_max)
 {
@@ -471,11 +468,11 @@ float mapVal(float x, float in_min, float in_max, float out_min, float out_max)
  */
 int InitPWMOutput()
 {
-	PWMtimer.numChannels = 4;
-	PWMtimer.frequency = PWM_FREQ;
-	PWMtimer.TIM = TIM5;
-	PWMtimer.Channel = TIM_CHANNEL_ALL;
-	PWMtimer.timer = Initialize_PWM(&PWMtimer);
+	PWMtimer.numChannels 	= 4;
+	PWMtimer.frequency 		= PWM_FREQ;
+	PWMtimer.TIM 			= TIM5;
+	PWMtimer.Channel 		= TIM_CHANNEL_ALL;
+	PWMtimer.timer 			= Initialize_PWM(&PWMtimer);
 
 	return HAL_OK;
 }

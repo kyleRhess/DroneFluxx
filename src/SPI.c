@@ -19,32 +19,28 @@ void SPI_Initialize(SPI_Bus * _SPI, SPI_TypeDef * SPI_BUS, uint32_t BaudRatePres
 {
 	// Prepare the SPI bus
 	if(SPI_BUS == SPI1)
-	{
 		__HAL_RCC_SPI1_CLK_ENABLE();
-	}
 	else if(SPI_BUS == SPI2)
-	{
 		__HAL_RCC_SPI2_CLK_ENABLE();
-	}
 	else
-	{
 		__HAL_RCC_SPI5_CLK_ENABLE();
-	}
 
-	_SPI->SPIBus.Instance = SPI_BUS;
+	_SPI->SPIBus.Instance 				= SPI_BUS;
 	_SPI->SPIBus.Init.BaudRatePrescaler = BaudRatePrescaler;
+
 	if(SPI_BUS == SPI1)
-		_SPI->SPIBus.Init.CLKPhase = SPI_PHASE_1EDGE;
+		_SPI->SPIBus.Init.CLKPhase 		= SPI_PHASE_1EDGE;
 	else
-		_SPI->SPIBus.Init.CLKPhase = SPI_PHASE_2EDGE;
-	_SPI->SPIBus.Init.CLKPolarity = CLKPolarity;
-	_SPI->SPIBus.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLED;
-	_SPI->SPIBus.Init.DataSize = SPI_DATASIZE_8BIT;
-	_SPI->SPIBus.Init.Direction = SPI_DIRECTION_2LINES;
-	_SPI->SPIBus.Init.FirstBit = FirstBit;
-	_SPI->SPIBus.Init.Mode = SPI_MODE_MASTER;
-	_SPI->SPIBus.Init.NSS = SPI_NSS_SOFT;
-	_SPI->SPIBus.Init.TIMode = SPI_TIMODE_DISABLED;
+		_SPI->SPIBus.Init.CLKPhase 		= SPI_PHASE_2EDGE;
+
+	_SPI->SPIBus.Init.CLKPolarity 		= CLKPolarity;
+	_SPI->SPIBus.Init.CRCCalculation 	= SPI_CRCCALCULATION_DISABLED;
+	_SPI->SPIBus.Init.DataSize 			= SPI_DATASIZE_8BIT;
+	_SPI->SPIBus.Init.Direction 		= SPI_DIRECTION_2LINES;
+	_SPI->SPIBus.Init.FirstBit 			= FirstBit;
+	_SPI->SPIBus.Init.Mode 				= SPI_MODE_MASTER;
+	_SPI->SPIBus.Init.NSS 				= SPI_NSS_SOFT;
+	_SPI->SPIBus.Init.TIMode 			= SPI_TIMODE_DISABLED;
 
 	if( HAL_SPI_Init(&_SPI->SPIBus) == HAL_OK){/**/}
 }
@@ -58,9 +54,9 @@ void SPI_Initialize_CS(GPIO_TypeDef * CSPort, uint32_t pin)
 	else if(CSPort == GPIOH) __GPIOH_CLK_ENABLE();
 
 	GPIO_InitTypeDef CSpin;
-	CSpin.Mode = GPIO_MODE_OUTPUT_PP;
-	CSpin.Pin = pin;
-	CSpin.Pull = GPIO_PULLUP;
+	CSpin.Mode 	= GPIO_MODE_OUTPUT_PP;
+	CSpin.Pin 	= pin;
+	CSpin.Pull 	= GPIO_PULLUP;
 	CSpin.Speed = GPIO_SPEED_HIGH;
 	HAL_GPIO_Init(CSPort, &CSpin);
 
@@ -90,9 +86,9 @@ void SPI_SetCSHi(GPIO_TypeDef *GPIOx, uint32_t Pin)
 void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi)
 {
 	GPIO_InitTypeDef SPI_Pins;
-	SPI_Pins.Mode = GPIO_MODE_AF_PP;
-	SPI_Pins.Pull = GPIO_PULLUP;
-	SPI_Pins.Speed = GPIO_SPEED_HIGH;
+	SPI_Pins.Mode 	= GPIO_MODE_AF_PP;
+	SPI_Pins.Pull 	= GPIO_PULLUP;
+	SPI_Pins.Speed 	= GPIO_SPEED_HIGH;
 
 	if(hspi->Instance == SPI1)
 	{
@@ -107,12 +103,5 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi)
 		SPI_Pins.Pin = GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_7;
 		SPI_Pins.Alternate = GPIO_AF5_SPI2;
 		HAL_GPIO_Init((GPIO_TypeDef *)GPIOC, &SPI_Pins);
-	}
-	else
-	{
-//			__GPIOB_CLK_ENABLE();
-//			SPI_Pins.Pin = GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5;
-//			SPI_Pins.Alternate = GPIO_AF5_SPI1;
-//			HAL_GPIO_Init((GPIO_TypeDef *)GPIOB, &SPI_Pins);
 	}
 }

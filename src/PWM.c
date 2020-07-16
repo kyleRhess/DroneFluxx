@@ -5,24 +5,8 @@ TIM_HandleTypeDef timer_PWM;
 
 TIM_HandleTypeDef Initialize_PWM(PWM_Out * PWMType)
 {
-	TIM_TypeDef * TIM = PWMType->TIM;
-	uint16_t nChannels = PWMType->numChannels;
-
-
-
-//	 __HAL_RCC_TIM5_CLK_ENABLE();
-//	    NVIC_SetPriority(TIM5_IRQn, 0);
-//	    NVIC_EnableIRQ(TIM5_IRQn);
-//
-//	    TIM5->PSC = 16799;         // prescaler
-//	    TIM5->EGR = TIM_EGR_UG;    // generate an update event to load the prescaler
-//	    TIM5->ARR = 4999;          // counter limit
-//	    TIM5->SR = 0;              // clear interrupt status after the update event
-//	    TIM5->DIER = TIM_DIER_UIE;
-//
-//	TIM5->CR1 = TIM_CR1_CEN | TIM_CR1_OPM;
-
-
+	TIM_TypeDef * TIM 	= PWMType->TIM;
+	uint16_t nChannels 	= PWMType->numChannels;
 
 	TIM_MasterConfigTypeDef master;
 	TIM_OC_InitTypeDef configOC;
@@ -31,20 +15,20 @@ TIM_HandleTypeDef Initialize_PWM(PWM_Out * PWMType)
 	memset(&configOC, 0, sizeof(configOC));
 	memset(&timer_PWM, 0, sizeof(timer_PWM));
 
-	timer_PWM.Instance = TIM;
-	timer_PWM.Init.Prescaler = ((CLOCK_CYCLES_PER_SECOND / COUNTERFREQ) - 1);
-	timer_PWM.Init.CounterMode = TIM_COUNTERMODE_UP;
-	timer_PWM.Init.Period = PWM_STEPS - 1; // ARR -> counter max
-	timer_PWM.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+	timer_PWM.Instance 				= TIM;
+	timer_PWM.Init.Prescaler 		= ((CLOCK_CYCLES_PER_SECOND / COUNTERFREQ) - 1);
+	timer_PWM.Init.CounterMode 		= TIM_COUNTERMODE_UP;
+	timer_PWM.Init.Period 			= PWM_STEPS - 1; // ARR -> counter max
+	timer_PWM.Init.ClockDivision 	= TIM_CLOCKDIVISION_DIV1;
 
 	HAL_TIM_PWM_Init(&timer_PWM);
 
-	master.MasterOutputTrigger = TIM_TRGO_RESET;
-	master.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+	master.MasterOutputTrigger 		= TIM_TRGO_RESET;
+	master.MasterSlaveMode 			= TIM_MASTERSLAVEMODE_DISABLE;
 
-	configOC.OCMode = TIM_OCMODE_PWM1;
-	configOC.Pulse = 0;
-	configOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+	configOC.OCMode 				= TIM_OCMODE_PWM1;
+	configOC.Pulse 					= 0;
+	configOC.OCPolarity 			= TIM_OCPOLARITY_HIGH;
 
 	if(nChannels <= 1)
 	{
@@ -87,8 +71,10 @@ TIM_HandleTypeDef Initialize_PWM(PWM_Out * PWMType)
 
 void PWM_adjust_DutyCycle(TIM_HandleTypeDef * pwmHandle, uint32_t Channel, float dutyCycle)
 {
-	if(dutyCycle > 100.0f) dutyCycle = 100.0f;
-	if(dutyCycle < 0.0f) dutyCycle = 0.0f;
+	if(dutyCycle > 100.0f)
+		dutyCycle = 100.0f;
+	if(dutyCycle < 0.0f)
+		dutyCycle = 0.0f;
 
 	float tempPulseWidth_us = ((float)(1000000/PWM_FREQ))*(dutyCycle/100.0f);
 
@@ -110,7 +96,7 @@ void PWM_adjust_PulseWidth(TIM_HandleTypeDef * pwmHandle, uint32_t Channel, floa
     switch(Channel)
     {
 		case TIM_CHANNEL_1:
-			pwmHandle->Instance->CCR1 = counts_Ccr;//(roundf(dutyCycle));  /*Change CCR1 to appropriate channel, or pass it in with function.*/
+			pwmHandle->Instance->CCR1 = counts_Ccr;  /*Change CCR1 to appropriate channel, or pass it in with function.*/
 			break;
 
 		case TIM_CHANNEL_2:

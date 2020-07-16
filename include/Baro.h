@@ -46,7 +46,7 @@ double seaLevelPress;
 extern void readBARO(uint8_t * arr);
 extern void accumulateBARO(uint8_t * arr);
 extern void procBARO();
-extern void initBARO();
+extern int initBARO();
 
 extern float baro_get_altitude();
 extern double baro_get_pressure();
