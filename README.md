@@ -1,6 +1,7 @@
 # DroneFluxx
 
 ## A custom quadcopter flight controller
+![GitHub repo size](https://img.shields.io/github/repo-size/kyleRhess/DroneFluxx?color=yellow&style=flat-round)
 
 ### Firmware
 
