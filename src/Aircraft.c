@@ -18,6 +18,11 @@
 #define MOTOR_FILT_K 	0.45045f
 #define MOTOR_NUM		4
 
+// Exponential values found emperically
+#define THROT_EXP3		0.0018f
+#define THROT_EXP1		(THROT_EXP3 * 1000.0f)
+
+
 float xgyro_Ahrs, ygyro_Ahrs, zgyro_Ahrs = 0.0f;
 float xaccl_Ahrs, yaccl_Ahrs, zaccl_Ahrs = 0.0f;
 float alt_Ahrs, roll_Ahrs, pitch_Ahrs, yaw_Ahrs = 0.0f;
@@ -69,9 +74,8 @@ void aircraft_GetRxInput()
 			MIN_IDLE_THROT,
 			MAX_CONT_THROT);
 
-//	TODO: replace 0.0018 with sometime less arbitrary.
-	roll_Input 	= 0.0018f*(roll_Input*roll_Input*roll_Input) 	+ 1.7708f*(roll_Input);		// 3rd order exponential
-	pitch_Input = 0.0018f*(pitch_Input*pitch_Input*pitch_Input) + 1.7708f*(pitch_Input);	// 3rd order exponential
+	roll_Input 	= THROT_EXP3*(roll_Input*roll_Input*roll_Input) 	+ THROT_EXP1*(roll_Input);	// 3rd order exponential
+	pitch_Input = THROT_EXP3*(pitch_Input*pitch_Input*pitch_Input) 	+ THROT_EXP1*(pitch_Input);	// 3rd order exponential
 
 	if(AIRCRAFT_STATE >= AIRCRAFT_STATE_IDLE)
 	{
