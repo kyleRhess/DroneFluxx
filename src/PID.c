@@ -6,46 +6,63 @@ void PID_Initialize(PID_Controller * _PID)
 	// Init all values to zero
 	_PID->sampleError 		= 0.0f;
 	_PID->deltaInput 		= 0.0f;
-	_PID->lastInput 		= 0.0f;
+	_PID->lastError 		= 0.0f;
 	_PID->PTerm 			= 0.0f;
 	_PID->ITerm 			= 0.0f;
 	_PID->DTerm 			= 0.0f;
 	_PID->controllerOutput 	= 0.0f;
 	_PID->updates 			= 0;
-	_PID->windupGuard 		= 100.0f;
+	_PID->windupMax			= 100.0f;
+	_PID->windupMin			= -100.0f;
 }
 
 void PID_Update(PID_Controller * _PID, float systemFeedback)
 {
+	float new_i = 0.0f;
+	int windGaurd = 1;
+
 	// Compute error between set-point and system measurement
 	_PID->sampleError = _PID->setPoint - systemFeedback;
 
 	// Compute diff from last error
-	_PID->deltaInput = systemFeedback - _PID->lastInput;
+	if(_PID->kD > 0.0f)
+		_PID->deltaInput = _PID->lastError - _PID->sampleError;
 
 	// Remember last error value
-	_PID->lastInput = systemFeedback;
+	_PID->lastError = _PID->sampleError;
 
 	// Calculate terms
 	_PID->PTerm =  _PID->kP * _PID->sampleError;
-	_PID->ITerm += _PID->kI * _PID->deltaTime * _PID->sampleError;
-	_PID->DTerm = -_PID->kD * _PID->deltaInput / _PID->deltaTime;
+	new_i =  _PID->ITerm + (_PID->kI * _PID->deltaTime * _PID->sampleError);
 
-	// Prevent integrator wind-up
-	if(_PID->ITerm > _PID->windupGuard)
-		_PID->ITerm = _PID->windupGuard;
-
-	if(_PID->ITerm < -_PID->windupGuard)
-		_PID->ITerm = -_PID->windupGuard;
+	if(_PID->kD > 0.0f)
+		_PID->DTerm = _PID->kD * (_PID->deltaInput / _PID->deltaTime);
 
 	// Sum terms into controller output
-	_PID->controllerOutput = _PID->PTerm + _PID->ITerm + _PID->DTerm;
+	_PID->controllerOutput = _PID->PTerm + new_i + _PID->DTerm;
 
-#if 0
-	// Clamp output to -100-100% (needs to go negative to subtract from "motorPower" value)
-	if(_PID->controllerOutput >  99.99f) _PID->controllerOutput =  99.99f;
-	if(_PID->controllerOutput < -99.99f) _PID->controllerOutput = -99.99f;
-#endif
+	// Prevent integrator wind-up
+	if(_PID->controllerOutput > _PID->windupMax)
+	{
+		_PID->controllerOutput = _PID->windupMax;
+
+		if(_PID->sampleError > 0.0f)
+		{
+			windGaurd = 0;
+		}
+	}
+	else if(_PID->controllerOutput < _PID->windupMin)
+	{
+		_PID->controllerOutput = _PID->windupMin;
+
+		if(_PID->sampleError < 0.0f)
+		{
+			windGaurd = 0;
+		}
+	}
+
+	if(windGaurd == 1)
+		_PID->ITerm = new_i;
 
 	_PID->updates++;
 }
@@ -84,7 +101,7 @@ void PID_Reset(PID_Controller * _PID)
 {
 	_PID->sampleError 		= 0.0f;
 	_PID->deltaInput 		= 0.0f;
-	_PID->lastInput 		= 0.0f;
+	_PID->lastError 		= 0.0f;
 	_PID->controllerOutput 	= 0.0f;
 	_PID->updates 			= 0;
 	_PID->PTerm 			= 0.0f;
