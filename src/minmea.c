@@ -29,7 +29,7 @@ static int hex2int(char c)
 
 uint8_t minmea_checksum(const char *sentence)
 {
-    // Support senteces with or without the starting dollar sign.
+    // Support sentences with or without the starting dollar sign.
     if (*sentence == '$')
         sentence++;
 
